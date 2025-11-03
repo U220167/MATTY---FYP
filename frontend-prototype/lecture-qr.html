@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generate QR Code - Maynooth Attendance Tool</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">Maynooth Attendance Tool</div>
+      <div>
+        <a href="lecturer-dashboard.html" class="btn btn-outline" style="margin-right: 0.5rem;">← Back to Dashboard</a>
+        <a href="index.html" class="btn btn-outline" id="logout-link-qr">Logout</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="card">
+      <h1 id="lecture-title">Loading...</h1>
+      <p id="lecture-details" class="text-secondary mb-3"></p>
+    </div>
+
+    <div class="card">
+      <h2 class="mb-2">QR Code for Attendance</h2>
+      
+      <div id="qr-display">
+        <p>Generating QR code...</p>
+      </div>
+
+      <div class="btn-group mt-3">
+        <button id="refresh-btn" class="btn btn-primary">Refresh QR Code</button>
+        <button id="stop-btn" class="btn btn-danger">Stop QR Code</button>
+        <button id="view-attendance-btn" class="btn btn-outline">View Attendance</button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { Auth } from './js/main.js';
+    import { initQRPage } from './js/qr.js';
+    
+    // Handle logout
+    const logoutLink = document.getElementById('logout-link-qr');
+    if (logoutLink) {
+      logoutLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        Auth.logout();
+        window.location.href = 'index.html';
+      });
+    }
+    
+    // QR page initialization happens in qr.js on page load
+  </script>
+</body>
+</html>

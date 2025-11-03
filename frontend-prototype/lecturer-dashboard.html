@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecturer Dashboard - Maynooth Attendance Tool</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">Maynooth Attendance Tool</div>
+      <div>
+        <span id="user-info"></span>
+        <a href="index.html" class="btn btn-outline" style="margin-left: 1rem;" id="logout-link">Logout</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <h1 style="margin: 0;">Lecturer Dashboard</h1>
+      <button class="btn btn-primary" id="create-lecture-btn">+ Create Lecture</button>
+    </div>
+    
+    <div id="statistics-container" class="mb-3"></div>
+    
+    <!-- Day Navigation -->
+    <div id="day-navigation" class="mb-3"></div>
+    
+    <div id="timetable-container">
+      <p>Loading...</p>
+    </div>
+  </main>
+
+  <!-- Create Lecture Modal -->
+  <div id="create-lecture-modal" class="modal hidden">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>Create New Lecture</h2>
+        <button type="button" class="btn btn-outline" id="close-modal-btn" style="padding: 0.5rem 1rem;">×</button>
+      </div>
+      
+      <form id="create-lecture-form">
+        <div class="form-group">
+          <label for="lecture-title" class="form-label">Title</label>
+          <input type="text" id="lecture-title" class="form-input" required placeholder="e.g., Database Systems - Lecture 5">
+        </div>
+
+        <div class="form-group">
+          <label for="lecture-module-code" class="form-label">Module Code</label>
+          <input type="text" id="lecture-module-code" class="form-input" required placeholder="e.g., CS301">
+        </div>
+
+        <div class="form-group">
+          <label for="lecture-module-name" class="form-label">Module Name</label>
+          <input type="text" id="lecture-module-name" class="form-input" required placeholder="e.g., Database Systems">
+        </div>
+
+        <div class="form-group">
+          <label for="lecture-date" class="form-label">Date</label>
+          <input type="date" id="lecture-date" class="form-input" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="lecture-start-time" class="form-label">Start Time</label>
+            <input type="time" id="lecture-start-time" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label for="lecture-end-time" class="form-label">End Time</label>
+            <input type="time" id="lecture-end-time" class="form-input" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lecture-location" class="form-label">Location</label>
+          <input type="text" id="lecture-location" class="form-input" required placeholder="e.g., Room A123">
+        </div>
+
+        <div id="create-lecture-error" class="alert alert-error hidden"></div>
+
+        <div class="btn-group mt-3">
+          <button type="submit" class="btn btn-primary">Create Lecture</button>
+          <button type="button" class="btn btn-outline" id="cancel-create-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { Auth } from './js/main.js';
+    import { initDashboard } from './js/lecturer.js';
+
+    // Display user info
+    const userInfo = document.getElementById('user-info');
+    if (userInfo && Auth.isLoggedIn()) {
+      userInfo.textContent = `Welcome, ${Auth.getEmail()}`;
+    }
+
+    // Handle logout
+    const logoutLink = document.getElementById('logout-link');
+    if (logoutLink) {
+      logoutLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        Auth.logout();
+        window.location.href = 'index.html';
+      });
+    }
+
+    // Dashboard initialization is called from lecturer.js on page load
+  </script>
+</body>
+</html>

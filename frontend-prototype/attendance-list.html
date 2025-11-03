@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance List - Maynooth Attendance Tool</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">Maynooth Attendance Tool</div>
+      <div>
+        <a href="lecturer-dashboard.html" class="btn btn-outline" style="margin-right: 0.5rem;">← Back to Dashboard</a>
+        <a href="index.html" class="btn btn-outline" id="logout-link-attendance">Logout</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="card">
+      <h1 id="lecture-title">Loading...</h1>
+      <p id="lecture-details" class="text-secondary mb-3"></p>
+    </div>
+
+    <div class="card">
+      <h2 class="mb-2">Attendance Summary</h2>
+      <div id="attendance-summary"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="mb-2">Attendance Records</h2>
+      <div id="attendance-table-container">
+        <p>Loading...</p>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { Auth } from './js/main.js';
+    import { loadAttendanceList } from './js/attendance.js';
+    
+    // Handle logout
+    const logoutLink = document.getElementById('logout-link-attendance');
+    if (logoutLink) {
+      logoutLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        Auth.logout();
+        window.location.href = 'index.html';
+      });
+    }
+    
+    // Attendance list loading happens in attendance.js on page load
+  </script>
+</body>
+</html>

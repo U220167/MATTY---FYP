@@ -1,0 +1,461 @@
+/**
+ * Lecturer.js - Lecturer dashboard logic with timetable view
+ * TODO: Replace mock data with API calls to:
+ *   - GET /lecturer/dashboard?date=YYYY-MM-DD
+ *   - POST /lecturer/lectures
+ *   - DELETE /lecturer/lectures/:id
+ */
+
+import { MockAPI, Auth, formatTime, formatDate } from './main.js';
+
+let dashboardData = null;
+let currentDate = new Date();
+let allLectures = [];
+
+/**
+ * Initialize dashboard
+ */
+export async function initDashboard() {
+  // Load lectures from localStorage or mock data
+  loadLectures();
+
+  // Set up event listeners
+  setupEventListeners();
+
+  // Display dashboard
+  await loadDashboard();
+}
+
+/**
+ * Load lectures from localStorage or initialize with mock data
+ */
+function loadLectures() {
+  const stored = localStorage.getItem('lecturer_lectures');
+  if (stored) {
+    allLectures = JSON.parse(stored);
+  } else {
+    // Initialize with mock data
+    allLectures = [
+      {
+        id: 42,
+        title: "Database Systems",
+        module: { code: "CS301", name: "Database Systems" },
+        lecture_date: getDateString(0), // Today
+        start_time: "09:00:00",
+        end_time: "10:30:00",
+        location: "Room A123",
+        status: "SCHEDULED"
+      },
+      {
+        id: 43,
+        title: "Web Development",
+        module: { code: "CS302", name: "Web Development" },
+        lecture_date: getDateString(0), // Today
+        start_time: "14:00:00",
+        end_time: "15:30:00",
+        location: "Room B456",
+        status: "SCHEDULED"
+      },
+      {
+        id: 44,
+        title: "Data Structures",
+        module: { code: "CS201", name: "Data Structures" },
+        lecture_date: getDateString(1), // Tomorrow
+        start_time: "10:00:00",
+        end_time: "11:30:00",
+        location: "Room C789",
+        status: "SCHEDULED"
+      }
+    ];
+    saveLectures();
+  }
+}
+
+/**
+ * Save lectures to localStorage
+ */
+function saveLectures() {
+  localStorage.setItem('lecturer_lectures', JSON.stringify(allLectures));
+}
+
+/**
+ * Get date string for N days from today
+ */
+function getDateString(daysOffset) {
+  const date = new Date();
+  date.setDate(date.getDate() + daysOffset);
+  return date.toISOString().split('T')[0];
+}
+
+/**
+ * Set up event listeners
+ */
+function setupEventListeners() {
+  // Create lecture button
+  const createBtn = document.getElementById('create-lecture-btn');
+  if (createBtn) {
+    createBtn.addEventListener('click', () => {
+      openCreateModal();
+    });
+  }
+
+  // Close modal buttons
+  const closeModalBtn = document.getElementById('close-modal-btn');
+  const cancelBtn = document.getElementById('cancel-create-btn');
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeCreateModal();
+    });
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeCreateModal();
+    });
+  }
+
+  // Create lecture form
+  const createForm = document.getElementById('create-lecture-form');
+  if (createForm) {
+    createForm.addEventListener('submit', handleCreateLecture);
+  }
+
+  // Click outside modal to close
+  const modal = document.getElementById('create-lecture-modal');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      // Only close if clicking on the modal backdrop, not the content
+      if (e.target === modal) {
+        closeCreateModal();
+      }
+    });
+    
+    // Prevent clicks inside modal-content from closing the modal
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+      modalContent.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
+  }
+}
+
+/**
+ * Open create lecture modal
+ */
+function openCreateModal() {
+  const modal = document.getElementById('create-lecture-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    // Set default date to current selected date
+    const dateInput = document.getElementById('lecture-date');
+    if (dateInput) {
+      dateInput.value = currentDate.toISOString().split('T')[0];
+    }
+  }
+}
+
+/**
+ * Close create lecture modal
+ */
+function closeCreateModal() {
+  const modal = document.getElementById('create-lecture-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    const form = document.getElementById('create-lecture-form');
+    if (form) {
+      form.reset();
+    }
+    const errorDiv = document.getElementById('create-lecture-error');
+    if (errorDiv) {
+      errorDiv.classList.add('hidden');
+      errorDiv.textContent = '';
+    }
+  }
+}
+
+/**
+ * Handle create lecture form submission
+ */
+async function handleCreateLecture(e) {
+  e.preventDefault();
+
+  const errorDiv = document.getElementById('create-lecture-error');
+  
+  // Get form values
+  const title = document.getElementById('lecture-title').value.trim();
+  const moduleCode = document.getElementById('lecture-module-code').value.trim();
+  const moduleName = document.getElementById('lecture-module-name').value.trim();
+  const date = document.getElementById('lecture-date').value;
+  const startTime = document.getElementById('lecture-start-time').value;
+  const endTime = document.getElementById('lecture-end-time').value;
+  const location = document.getElementById('lecture-location').value.trim();
+
+  // Validation
+  if (!title || !moduleCode || !moduleName || !date || !startTime || !endTime || !location) {
+    if (errorDiv) {
+      errorDiv.textContent = 'Please fill in all fields';
+      errorDiv.classList.remove('hidden');
+    }
+    return;
+  }
+
+  // Validate time
+  if (startTime >= endTime) {
+    if (errorDiv) {
+      errorDiv.textContent = 'End time must be after start time';
+      errorDiv.classList.remove('hidden');
+    }
+    return;
+  }
+
+  try {
+    // TODO: Replace with POST /lecturer/lectures API call
+    const newLecture = {
+      id: Date.now(), // Simple ID generation for prototype
+      title,
+      module: { code: moduleCode, name: moduleName },
+      lecture_date: date,
+      start_time: `${startTime}:00`,
+      end_time: `${endTime}:00`,
+      location,
+      status: 'SCHEDULED',
+      has_qr_active: false,
+      attendance_count: null
+    };
+
+    allLectures.push(newLecture);
+    saveLectures();
+
+    // Close modal and reload dashboard
+    closeCreateModal();
+    await loadDashboard();
+
+  } catch (error) {
+    console.error('Error creating lecture:', error);
+    if (errorDiv) {
+      errorDiv.textContent = 'Error creating lecture. Please try again.';
+      errorDiv.classList.remove('hidden');
+    }
+  }
+}
+
+/**
+ * Load and display lecturer dashboard
+ */
+export async function loadDashboard() {
+  try {
+    // Show loading state
+    const timetableContainer = document.getElementById('timetable-container');
+    if (timetableContainer) {
+      timetableContainer.innerHTML = '<p>Loading...</p>';
+    }
+
+    // Get lectures for current date
+    const dateString = currentDate.toISOString().split('T')[0];
+    const dayLectures = allLectures.filter(l => l.lecture_date === dateString);
+
+    // Display day navigation
+    displayDayNavigation();
+
+    // Display timetable
+    displayTimetable(dayLectures);
+
+    // Display statistics
+    displayStatistics(dayLectures);
+
+  } catch (error) {
+    console.error('Error loading dashboard:', error);
+    const timetableContainer = document.getElementById('timetable-container');
+    if (timetableContainer) {
+      timetableContainer.innerHTML = '<div class="alert alert-error">Error loading dashboard. Please try again.</div>';
+    }
+  }
+}
+
+/**
+ * Display day navigation
+ */
+function displayDayNavigation() {
+  const container = document.getElementById('day-navigation');
+  if (!container) return;
+
+  const days = [];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  // Show current week (7 days starting from today)
+  for (let i = 0; i < 7; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    const dateString = date.toISOString().split('T')[0];
+    const dayName = dayNames[date.getDay()];
+    const dayNum = date.getDate();
+    const month = date.getMonth() + 1;
+    
+    const isActive = dateString === currentDate.toISOString().split('T')[0];
+    const isToday = dateString === new Date().toISOString().split('T')[0];
+
+    days.push({
+      date: dateString,
+      label: `${dayName} ${dayNum}/${month}`,
+      isActive,
+      isToday
+    });
+  }
+
+  container.innerHTML = `
+    <div class="day-nav">
+      ${days.map(day => `
+        <button class="day-nav-btn ${day.isActive ? 'active' : ''} ${day.isToday ? 'today' : ''}" 
+                data-date="${day.date}"
+                ${day.isToday ? 'title="Today"' : ''}>
+          ${day.label}
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  // Add click handlers
+  container.querySelectorAll('.day-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const dateString = btn.getAttribute('data-date');
+      currentDate = new Date(dateString);
+      loadDashboard();
+    });
+  });
+}
+
+/**
+ * Display timetable in a structured format
+ */
+function displayTimetable(lectures) {
+  const container = document.getElementById('timetable-container');
+  if (!container) return;
+
+  const dateString = currentDate.toISOString().split('T')[0];
+  const formattedDate = formatDate(dateString);
+
+  if (!lectures || lectures.length === 0) {
+    container.innerHTML = `
+      <h2 class="mb-2">Schedule - ${formattedDate}</h2>
+      <p>No lectures scheduled for this day.</p>
+    `;
+    return;
+  }
+
+  // Sort lectures by start time
+  const sortedLectures = [...lectures].sort((a, b) => {
+    return a.start_time.localeCompare(b.start_time);
+  });
+
+  container.innerHTML = `
+    <h2 class="mb-2">Schedule - ${formattedDate}</h2>
+    <div class="timetable-view">
+      <div class="timetable-time-slot" style="border-right: none; font-weight: 600;">Time</div>
+      <div style="font-weight: 600; padding: 0.75rem;">Lectures</div>
+      ${sortedLectures.map(lecture => `
+        <div class="timetable-time-slot">
+          ${formatTime(lecture.start_time)}<br>
+          ${formatTime(lecture.end_time)}
+        </div>
+        <div class="timetable-lectures">
+          <div class="timetable-lecture-item">
+            <div class="timetable-lecture-header">
+              <div>
+                <div class="timetable-lecture-time">${formatTime(lecture.start_time)} - ${formatTime(lecture.end_time)}</div>
+                <div class="timetable-lecture-title">${lecture.title}</div>
+                <div class="timetable-lecture-module">📚 ${lecture.module.code} - ${lecture.module.name}</div>
+                <div class="timetable-lecture-location">📍 ${lecture.location}</div>
+              </div>
+            </div>
+            <div class="timetable-lecture-actions">
+              <button class="btn btn-primary" onclick="generateQR(${lecture.id})">Generate QR</button>
+              <a href="attendance-list.html?lectureId=${lecture.id}" class="btn btn-outline">View Attendance</a>
+              <button class="delete-lecture-btn" onclick="deleteLecture(${lecture.id})">Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+/**
+ * Display statistics
+ */
+function displayStatistics(lectures) {
+  const statsContainer = document.getElementById('statistics-container');
+  if (!statsContainer) return;
+
+  const dateString = currentDate.toISOString().split('T')[0];
+  const dayLectures = allLectures.filter(l => l.lecture_date === dateString);
+  const totalLectures = allLectures.length;
+
+  statsContainer.innerHTML = `
+    <div class="summary-stats">
+      <div class="stat-card">
+        <div class="stat-value">${dayLectures.length}</div>
+        <div class="stat-label">Lectures Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${totalLectures}</div>
+        <div class="stat-label">Total Lectures</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${lectures.filter(l => l.status === 'ACTIVE').length}</div>
+        <div class="stat-label">Active Sessions</div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Delete a lecture
+ * This function is exposed globally for onclick handlers
+ */
+window.deleteLecture = async function(lectureId) {
+  if (!confirm('Are you sure you want to delete this lecture? This action cannot be undone.')) {
+    return;
+  }
+
+  try {
+    // TODO: Replace with DELETE /lecturer/lectures/:id API call
+    allLectures = allLectures.filter(l => l.id !== lectureId);
+    saveLectures();
+
+    // Reload dashboard
+    await loadDashboard();
+
+  } catch (error) {
+    console.error('Error deleting lecture:', error);
+    alert('Error deleting lecture. Please try again.');
+  }
+};
+
+/**
+ * Navigate to QR generation page
+ * This function is exposed globally for onclick handlers
+ */
+window.generateQR = function(lectureId) {
+  window.location.href = `lecture-qr.html?lectureId=${lectureId}`;
+};
+
+// Initialize dashboard on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (Auth.isLoggedIn() && Auth.getRole() === 'LECTURER') {
+      initDashboard();
+    } else {
+      window.location.href = 'index.html';
+    }
+  });
+} else {
+  if (Auth.isLoggedIn() && Auth.getRole() === 'LECTURER') {
+    initDashboard();
+  } else {
+    window.location.href = 'index.html';
+  }
+}

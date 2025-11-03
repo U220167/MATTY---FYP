@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maynooth Attendance Tool - Login</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">Maynooth Attendance Tool</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div style="max-width: 400px; margin: 3rem auto;">
+      <div class="card">
+        <h1 style="text-align: center; margin-bottom: 1.5rem;">Login</h1>
+        
+        <form id="login-form">
+          <div class="form-group">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" id="email" class="form-input" required placeholder="your.email@mu.ie">
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" class="form-input" required placeholder="Enter your password">
+          </div>
+
+          <div class="form-group">
+            <label for="role" class="form-label">Login As</label>
+            <select id="role" class="form-select" required>
+              <option value="">Select role...</option>
+              <option value="LECTURER">Lecturer</option>
+              <option value="STUDENT">Student</option>
+            </select>
+          </div>
+
+          <div id="login-error" class="alert alert-error hidden"></div>
+
+          <button type="submit" class="btn btn-primary btn-block">Login</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { MockAPI, Auth } from './js/main.js';
+
+    const loginForm = document.getElementById('login-form');
+    const errorDiv = document.getElementById('login-error');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const role = document.getElementById('role').value;
+
+      // Clear previous errors
+      if (errorDiv) {
+        errorDiv.textContent = '';
+        errorDiv.classList.add('hidden');
+      }
+
+      // Validation
+      if (!email || !password || !role) {
+        if (errorDiv) {
+          errorDiv.textContent = 'Please fill in all fields';
+          errorDiv.classList.remove('hidden');
+        }
+        return;
+      }
+
+      try {
+        // TODO: Replace with POST /auth/login API call
+        const result = await MockAPI.login(email, password, role);
+        
+        if (result.success) {
+          // Store login info
+          Auth.login(email, role);
+
+          // Redirect based on role
+          if (role === 'LECTURER') {
+            window.location.href = 'lecturer-dashboard.html';
+          } else {
+            window.location.href = 'student-checkin.html';
+          }
+        }
+      } catch (error) {
+        if (errorDiv) {
+          errorDiv.textContent = error.message || 'Login failed. Please try again.';
+          errorDiv.classList.remove('hidden');
+        }
+      }
+    });
+
+    // Check if already logged in (but allow manual logout first)
+    // Don't auto-redirect immediately - let user see login form
+    // They can manually navigate or will be redirected after login
+  </script>
+</body>
+</html>

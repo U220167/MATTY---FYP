@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Check-In - Maynooth Attendance Tool</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo">Maynooth Attendance Tool</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div style="max-width: 600px; margin: 2rem auto;">
+      <div class="card">
+        <h1 class="text-center mb-2">Attendance Check-In</h1>
+        
+        <div id="token-display" class="alert alert-info text-center mb-3" style="font-family: monospace; word-break: break-all;"></div>
+
+        <!-- Manual Token Entry (shown if no token in URL) -->
+        <div id="manual-token-section" class="hidden mb-3">
+          <div class="alert alert-warning">
+            <strong>No token in URL</strong>
+            <p style="margin-top: 0.5rem; font-size: 0.875rem;">Enter the QR token manually:</p>
+            <div class="form-group mt-2">
+              <input type="text" id="manual-token-input" class="form-input" placeholder="att_demo_42_1234567890" style="font-family: monospace;">
+            </div>
+            <button type="button" id="use-manual-token-btn" class="btn btn-primary btn-block">Use This Token</button>
+          </div>
+        </div>
+
+        <!-- Login Section -->
+        <div id="login-section">
+          <h2 class="mb-2">Student Login</h2>
+          <p class="mb-2">Please log in with your student ID and password to check in.</p>
+          
+          <form id="student-login-form">
+            <div class="form-group">
+              <label for="student-id" class="form-label">Student ID</label>
+              <input type="text" id="student-id" class="form-input" required placeholder="12345678" pattern="[0-9]{8}" maxlength="8">
+              <small style="color: var(--text-secondary);">Enter your 8-digit student ID</small>
+            </div>
+
+            <div class="form-group">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" id="password" class="form-input" required placeholder="Enter your password">
+            </div>
+
+            <div id="login-error" class="alert alert-error hidden"></div>
+
+            <button type="submit" class="btn btn-primary btn-block">Login</button>
+          </form>
+        </div>
+
+        <!-- Check-in Section -->
+        <div id="checkin-section" class="hidden">
+          <div id="student-info" class="mb-2"></div>
+          <button id="logout-btn" class="btn btn-outline mb-2">Logout</button>
+          
+          <form id="checkin-form">
+            <div id="checkin-error" class="alert alert-error hidden"></div>
+            <div id="checkin-success" class="alert alert-success hidden"></div>
+            
+            <button type="submit" id="checkin-submit-btn" class="btn btn-primary btn-block">Submit Attendance</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initCheckInPage } from './js/student.js';
+    // Check-in page initialization happens in student.js on page load
+  </script>
+</body>
+</html>
