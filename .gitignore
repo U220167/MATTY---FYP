@@ -18,10 +18,15 @@ desktop.ini
 *.log
 logs/
 
-# Environment variables
+# Environment variables and credentials
 .env
 .env.local
 .env.*.local
+CREDENTIALS.txt
+credentials.txt
+*credentials*
+*.pem
+*.key
 
 # Build outputs (for future use)
 dist/

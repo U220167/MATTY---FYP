@@ -43,12 +43,14 @@
 - **Port:** 5432
 - **Database:** attendance_db
 - **User:** postgres
-- **Password:** Christopher6404!
+- **Password:** (stored locally - see CREDENTIALS.txt not committed to Git)
 
 **Connection String:**
 ```
-postgresql://postgres:Christopher6404!@localhost:5432/attendance_db
+postgresql://postgres:YOUR_PASSWORD@localhost:5432/attendance_db
 ```
+
+**⚠️ SECURITY NOTE:** Never commit real passwords to Git! Use environment variables (`.env` files) instead.
 
 **GitHub Repository:**
 - **URL:** https://github.com/U220167/MATTY---FYP.git
@@ -204,7 +206,7 @@ npm --version
 
 **Connect to database:**
 ```powershell
-$env:PGPASSWORD="Christopher6404!"; psql -U postgres -d attendance_db
+$env:PGPASSWORD="YOUR_PASSWORD"; psql -U postgres -d attendance_db
 ```
 
 **View tables:**
