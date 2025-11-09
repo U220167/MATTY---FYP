@@ -2,7 +2,7 @@
 
 A web application for lecturers to easily record student attendance using QR codes. The system measures student engagement in lectures through scalable, digital attendance tracking.
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Features](#features)
 - [Architecture](#architecture)
@@ -14,7 +14,7 @@ A web application for lecturers to easily record student attendance using QR cod
 - [GDPR Compliance](#gdpr-compliance)
 - [Future Enhancements](#future-enhancements)
 
-## ✨ Features
+##  Features
 
 ### For Lecturers
 - **Dashboard:** View timetable for current day/week
@@ -31,7 +31,7 @@ A web application for lecturers to easily record student attendance using QR cod
 - **Statistics:** Check attendance rate per module
 - **Mobile-Friendly:** Optimized for smartphone use
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 Frontend (Next.js) → Backend API (Express) → PostgreSQL Database
@@ -40,9 +40,9 @@ Frontend (Next.js) → Backend API (Express) → PostgreSQL Database
 
 See [PROJECT_PLAN.md](./PROJECT_PLAN.md) for detailed architecture diagrams.
 
-## 🚀 Getting Started
+ **Getting Started**
 
-### Prerequisites
+** Prerequisites**
 
 - Node.js 18+
 - PostgreSQL 14+
@@ -103,7 +103,7 @@ FRONTEND_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 maynooth-attendance-tool/
@@ -129,7 +129,7 @@ maynooth-attendance-tool/
 └── README.md                # This file
 ```
 
-## 📚 Documentation
+##  Documentation
 
 - **[PROJECT_PLAN.md](./PROJECT_PLAN.md)** - Complete project plan including:
   - System architecture
@@ -155,7 +155,7 @@ maynooth-attendance-tool/
   - Validation flow
   - Security considerations
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 ### Frontend
 - **Framework:** Next.js 14+ (App Router)
@@ -179,7 +179,7 @@ maynooth-attendance-tool/
 - **Primary DB:** PostgreSQL 14+
 - **Cache:** Redis
 
-## 🔒 Security
+##  Security
 
 ### Authentication
 - JWT-based authentication
@@ -209,10 +209,10 @@ maynooth-attendance-tool/
 - Minimal device information
 
 ### User Rights
-- ✅ Right to access (view attendance history)
-- ✅ Right to rectification (update profile)
-- ✅ Right to erasure (account deletion)
-- ✅ Data export (CSV/JSON download)
+-  Right to access (view attendance history)
+-  Right to rectification (update profile)
+-  Right to erasure (account deletion)
+-  Data export (CSV/JSON download)
 
 ### Security Measures
 - Encrypted data transmission (HTTPS)
@@ -225,16 +225,16 @@ maynooth-attendance-tool/
 - User accounts: While active
 - Audit logs: 90 days
 
-## 🚧 Implementation Phases
+##  Implementation Phases
 
 ### Phase 1: Core Functionality (Weeks 1-4)
 - [x] Database schema design
 - [ ] Database setup
-- [ ] User authentication (JWT)
-- [ ] Basic lecturer dashboard
-- [ ] QR code generation
-- [ ] Student check-in flow
-- [ ] Basic attendance recording
+- [x] User authentication (JWT)
+- [x] Basic lecturer dashboard
+- [x] QR code generation
+- [x] Student check-in flow
+- [x] Basic attendance recording
 
 ### Phase 2: Security & Validation (Weeks 5-6)
 - [ ] QR token expiration & refresh
@@ -282,26 +282,27 @@ maynooth-attendance-tool/
 - Real-time engagement polls
 - Participation scoring
 
-## 🤝 Contributing
+**Contributing**
 
 This is a Final Year Project. For questions or suggestions, please contact the project owner.
 
-## 📝 License
+**License**
 
 This project is developed for academic purposes as part of the Final Year Project at Maynooth University.
 
-## 👤 Author
+**Author**
 
-Final Year Project - Maynooth University
+Cian Ryan
+21367626
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - Maynooth University for the project opportunity
 - Modern web technologies and open-source libraries
 
 ---
 
-**Status:** 🚧 In Development
+**Status:**  In Development
 
 For detailed implementation guides, see the documentation files listed above.
 
