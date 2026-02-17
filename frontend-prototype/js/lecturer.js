@@ -16,13 +16,19 @@ let allLectures = [];
  * Initialize dashboard
  */
 export async function initDashboard() {
-  // Load lectures from localStorage or mock data
-  loadLectures();
+  if (Auth.getToken()) {
+    try {
+      const data = await MockAPI.getLecturerDashboard();
+      allLectures = data.lectures || [];
+    } catch (err) {
+      console.error('Failed to load lectures from API', err);
+      loadLectures();
+    }
+  } else {
+    loadLectures();
+  }
 
-  // Set up event listeners
   setupEventListeners();
-
-  // Display dashboard
   await loadDashboard();
 }
 
@@ -96,6 +102,16 @@ function setupEventListeners() {
   if (createBtn) {
     createBtn.addEventListener('click', () => {
       openCreateModal();
+    });
+  }
+
+  // Logout - clear token and go to login
+  const logoutLink = document.getElementById('logout-link');
+  if (logoutLink) {
+    logoutLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      Auth.logout();
+      window.location.href = 'index.html';
     });
   }
 
@@ -213,24 +229,42 @@ async function handleCreateLecture(e) {
   }
 
   try {
-    // TODO: Replace with POST /lecturer/lectures API call
-    const newLecture = {
-      id: Date.now(), // Simple ID generation for prototype
-      title,
-      module: { code: moduleCode, name: moduleName },
-      lecture_date: date,
-      start_time: `${startTime}:00`,
-      end_time: `${endTime}:00`,
-      location,
-      status: 'SCHEDULED',
-      has_qr_active: false,
-      attendance_count: null
-    };
+    const startTimeStr = startTime.length === 5 ? startTime + ':00' : startTime;
+    const endTimeStr = endTime.length === 5 ? endTime + ':00' : endTime;
+    if (Auth.getToken()) {
+      const created = await MockAPI.createLecture({
+        title,
+        lecture_date: date,
+        start_time: startTimeStr,
+        end_time: endTimeStr,
+        location
+      });
+      const list = Array.isArray(created) ? created : (created.lectures || [created]);
+      list.forEach(l => allLectures.push({
+        id: l.id,
+        title: l.title,
+        lecture_date: l.lecture_date,
+        start_time: l.start_time,
+        end_time: l.end_time,
+        location: l.location,
+        status: l.status || 'SCHEDULED',
+        module: { code: moduleCode, name: moduleName }
+      }));
+    } else {
+      const newLecture = {
+        id: Date.now(),
+        title,
+        module: { code: moduleCode, name: moduleName },
+        lecture_date: date,
+        start_time: startTimeStr,
+        end_time: endTimeStr,
+        location,
+        status: 'SCHEDULED'
+      };
+      allLectures.push(newLecture);
+      saveLectures();
+    }
 
-    allLectures.push(newLecture);
-    saveLectures();
-
-    // Close modal and reload dashboard
     closeCreateModal();
     await loadDashboard();
 

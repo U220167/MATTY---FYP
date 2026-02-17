@@ -161,64 +161,49 @@ function showCheckInForm() {
   
   if (studentInfo) {
     const studentId = Auth.getStudentId();
-    studentInfo.textContent = `Logged in as: ${studentId}`;
+    const email = Auth.getEmail();
+    studentInfo.textContent = studentId ? `Logged in as: ${studentId}` : `Logged in as: ${email}`;
   }
 }
 
 /**
- * Handle student login
+ * Handle student login (email + password for live API)
  */
 async function handleStudentLogin(e) {
   e.preventDefault();
 
-  const studentIdInput = document.getElementById('student-id');
+  const emailInput = document.getElementById('student-email');
   const passwordInput = document.getElementById('password');
   const errorDiv = document.getElementById('login-error');
 
-  const studentId = studentIdInput?.value.trim();
+  const email = emailInput?.value.trim();
   const password = passwordInput?.value;
 
-  // Client-side validation
-  if (!studentId) {
-    showLoginError('Student ID is required');
+  if (!email) {
+    showLoginError('Email is required');
     return;
   }
-
-  // Validate student ID format (8 digits)
-  if (!/^\d{8}$/.test(studentId)) {
-    showLoginError('Student ID must be 8 digits');
-    return;
-  }
-
   if (!password) {
     showLoginError('Password is required');
     return;
   }
 
-  // Clear previous errors
   if (errorDiv) {
     errorDiv.textContent = '';
     errorDiv.classList.add('hidden');
   }
 
-  // TODO: Replace with POST /auth/login API call
-  // For prototype, simulate successful login
   try {
-    // Simulate login (in production, call API)
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Store student login
-    Auth.loginStudent(studentId);
-    
-    // If we have a token, show check-in form, otherwise just update UI
-    if (qrToken) {
-      showCheckInForm();
-    } else {
-      // Token not set yet - show message to enter token
-      showLoginForm();
+    const result = await MockAPI.login(email, password, 'STUDENT');
+    if (result.success) {
+      Auth.setToken(result.token);
+      Auth.login(email, 'STUDENT', result.user);
+      if (result.user.student_id) Auth.loginStudent(result.user.student_id);
+      if (qrToken) showCheckInForm();
+      else showLoginForm();
     }
   } catch (error) {
-    showLoginError('Login failed. Please try again.');
+    showLoginError(error.message || 'Login failed. Please try again.');
   }
 }
 
@@ -239,26 +224,20 @@ function showLoginError(message) {
 async function handleCheckIn(e) {
   e.preventDefault();
 
-  const studentId = Auth.getStudentId();
   const errorDiv = document.getElementById('checkin-error');
   const successDiv = document.getElementById('checkin-success');
 
-  if (!studentId) {
+  if (!Auth.getToken()) {
     showCheckInError('Please log in first');
     return;
   }
 
-  // Ensure we have the token from URL (it should be there after manual entry updates URL)
-  if (!qrToken) {
-    qrToken = getQueryParam('token');
-  }
-
+  if (!qrToken) qrToken = getQueryParam('token');
   if (!qrToken) {
     showCheckInError('Please enter a valid QR token first');
     return;
   }
 
-  // Clear previous messages
   if (errorDiv) {
     errorDiv.textContent = '';
     errorDiv.classList.add('hidden');
@@ -277,7 +256,7 @@ async function handleCheckIn(e) {
   try {
     // Submit check-in
     // TODO: Replace with POST /student/attendance/checkin
-    const result = await MockAPI.checkIn(qrToken, studentId);
+    const result = await MockAPI.checkIn(qrToken);
 
     if (result.success) {
       // Show success message

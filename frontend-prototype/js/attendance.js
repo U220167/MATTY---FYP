@@ -10,26 +10,53 @@ import { MockAPI, Auth, getQueryParam, formatDate } from './main.js';
  */
 export async function loadAttendanceList() {
   const lectureId = parseInt(getQueryParam('lectureId'));
+  const container = document.getElementById('attendance-container');
 
   if (!lectureId) {
-    document.getElementById('attendance-container').innerHTML = 
-      '<div class="alert alert-error">Invalid lecture ID</div>';
+    if (container) container.innerHTML = '<div class="alert alert-error">Invalid lecture ID</div>';
     return;
   }
 
-  // Load lecture details
-  await loadLectureDetails(lectureId);
+  try {
+    let attendanceRecords = [];
+    let lectureInfo = null;
+    if (Auth.getToken()) {
+      const data = await MockAPI.getAttendanceForLecture(lectureId);
+      lectureInfo = data.lecture;
+      attendanceRecords = (data.attendance || []).map(a => ({
+        id: a.id,
+        student_id: a.student_id,
+        checked_in_at: a.checked_in_at,
+        status: a.status,
+        minutes_late: a.minutes_late,
+        student: { first_name: a.first_name, last_name: a.last_name }
+      }));
+    } else {
+      attendanceRecords = [];
+    }
 
-  // Get attendance records
-  // TODO: Replace with GET /lecturer/lectures/:id/attendance API call
-  const attendanceRecords = MockAPI.getAttendanceForLecture(lectureId);
+    if (lectureInfo) {
+      const titleEl = document.getElementById('lecture-title');
+      const detailsEl = document.getElementById('lecture-details');
+      if (titleEl) titleEl.textContent = lectureInfo.title || 'Lecture';
+      if (detailsEl) {
+        const d = lectureInfo.lecture_date ? formatDate(lectureInfo.lecture_date) : '';
+        const t = lectureInfo.start_time && lectureInfo.end_time
+          ? formatTime(lectureInfo.start_time) + ' - ' + formatTime(lectureInfo.end_time)
+          : '';
+        detailsEl.textContent = [d, t].filter(Boolean).join(' | ');
+      }
+    } else {
+      await loadLectureDetails(lectureId);
+    }
 
-  // Display attendance list
-  displayAttendanceList(attendanceRecords, lectureId);
-
-  // Calculate and display summary
-  const summary = calculateSummary(attendanceRecords);
-  displaySummary(summary);
+    displayAttendanceList(attendanceRecords, lectureId);
+    const summary = calculateSummary(attendanceRecords);
+    displaySummary(summary);
+  } catch (err) {
+    console.error(err);
+    if (container) container.innerHTML = '<div class="alert alert-error">Failed to load attendance.</div>';
+  }
 }
 
 /**
