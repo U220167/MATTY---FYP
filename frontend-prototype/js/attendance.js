@@ -120,18 +120,23 @@ function displayAttendanceList(records, lectureId) {
           </tr>
         </thead>
         <tbody>
-          ${records.map(record => `
+          ${records.map(record => {
+            const status = (record.status || 'PRESENT').toUpperCase();
+            const statusClass = status.toLowerCase();
+            const statusLabel = status === 'LATE' && record.minutes_late != null && record.minutes_late > 0
+              ? `LATE (${record.minutes_late} min)`
+              : status;
+            return `
             <tr>
               <td>${record.student?.first_name || 'Student'} ${record.student?.last_name || ''}</td>
-              <td>${record.student_id}</td>
+              <td>${record.student_id ?? ''}</td>
               <td>${new Date(record.checked_in_at).toLocaleString()}</td>
               <td>
-                <span class="status-badge status-${record.status.toLowerCase()}">
-                  ${record.status}
-                </span>
+                <span class="status-badge status-${statusClass}">${statusLabel}</span>
               </td>
             </tr>
-          `).join('')}
+          `;
+          }).join('')}
         </tbody>
       </table>
     </div>

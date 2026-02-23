@@ -10,6 +10,7 @@ import { MockAPI, Auth, formatTime, formatDate } from './main.js';
 
 let dashboardData = null;
 let currentDate = new Date();
+let calendarMonth = new Date(); // First of displayed month
 let allLectures = [];
 
 /**
@@ -139,6 +140,15 @@ function setupEventListeners() {
     createForm.addEventListener('submit', handleCreateLecture);
   }
 
+  // Repeat weekly checkbox toggle
+  const repeatCheckbox = document.getElementById('lecture-repeat-weekly');
+  const repeatWeeksGroup = document.getElementById('repeat-weeks-group');
+  if (repeatCheckbox && repeatWeeksGroup) {
+    repeatCheckbox.addEventListener('change', () => {
+      repeatWeeksGroup.classList.toggle('hidden', !repeatCheckbox.checked);
+    });
+  }
+
   // Click outside modal to close
   const modal = document.getElementById('create-lecture-modal');
   if (modal) {
@@ -185,6 +195,11 @@ function closeCreateModal() {
     if (form) {
       form.reset();
     }
+    const repeatCheckbox = document.getElementById('lecture-repeat-weekly');
+    const repeatWeeksGroup = document.getElementById('repeat-weeks-group');
+    if (repeatCheckbox && repeatWeeksGroup) {
+      repeatWeeksGroup.classList.add('hidden');
+    }
     const errorDiv = document.getElementById('create-lecture-error');
     if (errorDiv) {
       errorDiv.classList.add('hidden');
@@ -209,6 +224,10 @@ async function handleCreateLecture(e) {
   const startTime = document.getElementById('lecture-start-time').value;
   const endTime = document.getElementById('lecture-end-time').value;
   const location = document.getElementById('lecture-location').value.trim();
+  const repeatWeekly = document.getElementById('lecture-repeat-weekly')?.checked ?? false;
+  const repeatWeeks = repeatWeekly
+    ? Math.min(52, Math.max(1, parseInt(document.getElementById('lecture-repeat-weeks')?.value || '1', 10)))
+    : 1;
 
   // Validation
   if (!title || !moduleCode || !moduleName || !date || !startTime || !endTime || !location) {
@@ -232,13 +251,15 @@ async function handleCreateLecture(e) {
     const startTimeStr = startTime.length === 5 ? startTime + ':00' : startTime;
     const endTimeStr = endTime.length === 5 ? endTime + ':00' : endTime;
     if (Auth.getToken()) {
-      const created = await MockAPI.createLecture({
+      const body = {
         title,
         lecture_date: date,
         start_time: startTimeStr,
         end_time: endTimeStr,
-        location
-      });
+        location,
+        repeat_weeks: repeatWeeks
+      };
+      const created = await MockAPI.createLecture(body);
       const list = Array.isArray(created) ? created : (created.lectures || [created]);
       list.forEach(l => allLectures.push({
         id: l.id,
@@ -251,17 +272,21 @@ async function handleCreateLecture(e) {
         module: { code: moduleCode, name: moduleName }
       }));
     } else {
-      const newLecture = {
-        id: Date.now(),
-        title,
-        module: { code: moduleCode, name: moduleName },
-        lecture_date: date,
-        start_time: startTimeStr,
-        end_time: endTimeStr,
-        location,
-        status: 'SCHEDULED'
-      };
-      allLectures.push(newLecture);
+      for (let w = 0; w < repeatWeeks; w++) {
+        const d = new Date(date);
+        d.setDate(d.getDate() + w * 7);
+        const dateStr = d.toISOString().slice(0, 10);
+        allLectures.push({
+          id: Date.now() + w,
+          title,
+          module: { code: moduleCode, name: moduleName },
+          lecture_date: dateStr,
+          start_time: startTimeStr,
+          end_time: endTimeStr,
+          location,
+          status: 'SCHEDULED'
+        });
+      }
       saveLectures();
     }
 
@@ -292,8 +317,8 @@ export async function loadDashboard() {
     const dateString = currentDate.toISOString().split('T')[0];
     const dayLectures = allLectures.filter(l => l.lecture_date === dateString);
 
-    // Display day navigation
-    displayDayNavigation();
+    // Display calendar
+    displayCalendar();
 
     // Display timetable
     displayTimetable(dayLectures);
@@ -311,52 +336,95 @@ export async function loadDashboard() {
 }
 
 /**
- * Display day navigation
+ * Display month calendar with navigation
  */
-function displayDayNavigation() {
+function displayCalendar() {
   const container = document.getElementById('day-navigation');
   if (!container) return;
 
-  const days = [];
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  
-  // Show current week (7 days starting from today)
-  for (let i = 0; i < 7; i++) {
-    const date = new Date();
-    date.setDate(date.getDate() + i);
-    const dateString = date.toISOString().split('T')[0];
-    const dayName = dayNames[date.getDay()];
-    const dayNum = date.getDate();
-    const month = date.getMonth() + 1;
-    
-    const isActive = dateString === currentDate.toISOString().split('T')[0];
-    const isToday = dateString === new Date().toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
+  const selectedStr = currentDate.toISOString().split('T')[0];
 
-    days.push({
-      date: dateString,
-      label: `${dayName} ${dayNum}/${month}`,
-      isActive,
-      isToday
-    });
+  // Build calendar grid (6 weeks)
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = firstOfMonth.getDay();
+  const startDate = new Date(firstOfMonth);
+  startDate.setDate(startDate.getDate() - startOffset);
+
+  const weeks = [];
+  let cellDate = new Date(startDate);
+  for (let w = 0; w < 6; w++) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      const dateStr = cellDate.toISOString().split('T')[0];
+      const isCurrentMonth = cellDate.getMonth() === month;
+      const lectureCount = allLectures.filter(l => l.lecture_date === dateStr).length;
+      week.push({
+        dateStr,
+        dayNum: cellDate.getDate(),
+        isCurrentMonth,
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === selectedStr,
+        hasLectures: lectureCount > 0,
+        lectureCount
+      });
+      cellDate.setDate(cellDate.getDate() + 1);
+    }
+    weeks.push(week);
   }
 
   container.innerHTML = `
-    <div class="day-nav">
-      ${days.map(day => `
-        <button class="day-nav-btn ${day.isActive ? 'active' : ''} ${day.isToday ? 'today' : ''}" 
-                data-date="${day.date}"
-                ${day.isToday ? 'title="Today"' : ''}>
-          ${day.label}
-        </button>
-      `).join('')}
+    <div class="calendar-container">
+      <div class="calendar-header">
+        <button type="button" class="btn btn-outline calendar-nav-btn" id="calendar-prev" title="Previous month">←</button>
+        <div class="calendar-month-title">
+          <button type="button" class="btn btn-outline calendar-today-btn" id="calendar-today">Today</button>
+          <h3 class="calendar-month-label">${monthNames[month]} ${year}</h3>
+        </div>
+        <button type="button" class="btn btn-outline calendar-nav-btn" id="calendar-next" title="Next month">→</button>
+      </div>
+      <div class="calendar-grid">
+        <div class="calendar-weekday-header">
+          ${dayNames.map(d => `<span class="calendar-weekday">${d}</span>`).join('')}
+        </div>
+        ${weeks.map(week => `
+          <div class="calendar-week">
+            ${week.map(day => `
+              <button type="button" class="calendar-day ${!day.isCurrentMonth ? 'other-month' : ''} ${day.isToday ? 'today' : ''} ${day.isSelected ? 'selected' : ''}"
+                      data-date="${day.dateStr}">
+                <span class="calendar-day-num">${day.dayNum}</span>
+                ${day.hasLectures ? `<span class="calendar-day-lectures" title="${day.lectureCount} lecture(s)">${day.lectureCount}</span>` : ''}
+              </button>
+            `).join('')}
+          </div>
+        `).join('')}
+      </div>
     </div>
   `;
 
-  // Add click handlers
-  container.querySelectorAll('.day-nav-btn').forEach(btn => {
+  // Event listeners
+  document.getElementById('calendar-prev')?.addEventListener('click', () => {
+    calendarMonth.setMonth(calendarMonth.getMonth() - 1);
+    displayCalendar();
+  });
+  document.getElementById('calendar-next')?.addEventListener('click', () => {
+    calendarMonth.setMonth(calendarMonth.getMonth() + 1);
+    displayCalendar();
+  });
+  document.getElementById('calendar-today')?.addEventListener('click', () => {
+    calendarMonth = new Date();
+    currentDate = new Date();
+    displayCalendar();
+    loadDashboard();
+  });
+  container.querySelectorAll('.calendar-day').forEach(btn => {
     btn.addEventListener('click', () => {
-      const dateString = btn.getAttribute('data-date');
-      currentDate = new Date(dateString);
+      const dateStr = btn.getAttribute('data-date');
+      currentDate = new Date(dateStr);
       loadDashboard();
     });
   });

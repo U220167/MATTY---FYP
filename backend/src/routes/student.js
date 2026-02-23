@@ -4,7 +4,7 @@ const { authenticate, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-const LATE_THRESHOLD_MINUTES = 15;
+const LATE_THRESHOLD_MINUTES = 5;
 
 router.post('/attendance/checkin', authenticate, requireRole('STUDENT'), async (req, res) => {
   try {
@@ -45,7 +45,7 @@ router.post('/attendance/checkin', authenticate, requireRole('STUDENT'), async (
     const minutesLateNum = (now - lectureStart) / 60000;
     const minutesLate = Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(Number.isFinite(minutesLateNum) ? minutesLateNum : 0)));
     let status = 'PRESENT';
-    if (minutesLate > LATE_THRESHOLD_MINUTES) status = 'LATE';
+    if (minutesLate >= LATE_THRESHOLD_MINUTES) status = 'LATE';
     await pool.query(
       `INSERT INTO attendance (student_id, lecture_id, qr_token, checked_in_at, status, minutes_late)
        VALUES ($1, $2, $3, $4, $5, $6)`,

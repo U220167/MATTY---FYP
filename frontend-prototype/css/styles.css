@@ -460,7 +460,139 @@ tr:last-child td {
   box-shadow: var(--shadow-lg);
 }
 
-/* Day Navigation */
+/* Calendar */
+.calendar-container {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  max-width: 480px;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 0.5rem;
+}
+
+.calendar-nav-btn {
+  padding: 0.35rem 0.75rem;
+  min-width: 2.5rem;
+}
+
+.calendar-month-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.calendar-month-label {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.calendar-today-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.calendar-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  min-height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.15s;
+}
+
+.calendar-day:hover {
+  background-color: var(--bg-secondary);
+}
+
+.calendar-day.other-month {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.calendar-day.today {
+  border-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.calendar-day.selected {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.calendar-day.selected.other-month {
+  opacity: 1;
+}
+
+.calendar-day-num {
+  line-height: 1.2;
+}
+
+.calendar-day-lectures {
+  font-size: 0.65rem;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 10px;
+  padding: 0.1rem 0.35rem;
+  margin-top: 2px;
+  min-width: 1.25rem;
+}
+
+.calendar-day.selected .calendar-day-lectures {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--primary-color);
+}
+
+/*
+ * Legacy day-nav styles - replaced by calendar.
+ * Replaced the 7-day navigation with a month calendar view.
+ * Commented out for reference; uncomment if reverting to day-nav.
+ *
 .day-nav {
   display: flex;
   gap: 0.5rem;
@@ -488,6 +620,7 @@ tr:last-child td {
   color: white;
   border-color: var(--primary-color);
 }
+*/
 
 /* Timetable View */
 .timetable-view {
@@ -579,6 +712,21 @@ tr:last-child td {
     padding: 1.5rem;
   }
 
+  .calendar-container {
+    padding: 0.75rem;
+    max-width: 100%;
+  }
+
+  .calendar-day {
+    min-height: 32px;
+    font-size: 0.8rem;
+  }
+
+  .calendar-day-lectures {
+    font-size: 0.6rem;
+  }
+
+  /* Legacy day-nav - see main block above
   .day-nav {
     gap: 0.25rem;
   }
@@ -587,6 +735,7 @@ tr:last-child td {
     padding: 0.4rem 0.75rem;
     font-size: 0.8rem;
   }
+  */
 
   .timetable-view {
     grid-template-columns: 60px 1fr;

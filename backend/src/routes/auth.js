@@ -21,7 +21,9 @@ router.post('/register', async (req, res) => {
     if (role === 'STUDENT' && !student_id) {
       return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'Students must provide student_id' });
     }
-    const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+    const pass = typeof password === 'string' ? password.trim() : '';
+    if (!pass) return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'Password required' });
+    const password_hash = await bcrypt.hash(pass, SALT_ROUNDS);
     const result = await pool.query(
       `INSERT INTO users (email, password_hash, first_name, last_name, role, student_id, department_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -42,7 +44,8 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
+    const pass = typeof password === 'string' ? password.trim() : '';
+    if (!email || !pass) {
       return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'Email and password required' });
     }
     const userResult = await pool.query(
@@ -50,7 +53,7 @@ router.post('/login', async (req, res) => {
       [email]
     );
     const user = userResult.rows[0];
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+    if (!user || !(await bcrypt.compare(pass, user.password_hash))) {
       return res.status(401).json({ success: false, error: 'INVALID_CREDENTIALS', message: 'Invalid email or password' });
     }
     await pool.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);

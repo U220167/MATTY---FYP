@@ -79,6 +79,17 @@
           <input type="text" id="lecture-location" class="form-input" required placeholder="e.g., Room A123">
         </div>
 
+        <div class="form-group">
+          <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" id="lecture-repeat-weekly" style="width: auto;">
+            <span>Repeat weekly</span>
+          </label>
+          <div id="repeat-weeks-group" class="hidden mt-1" style="margin-left: 1.5rem;">
+            <label for="lecture-repeat-weeks" class="form-label" style="font-weight: normal;">Number of weeks</label>
+            <input type="number" id="lecture-repeat-weeks" class="form-input" min="1" max="52" value="12" style="max-width: 6rem;">
+          </div>
+        </div>
+
         <div id="create-lecture-error" class="alert alert-error hidden"></div>
 
         <div class="btn-group mt-3">

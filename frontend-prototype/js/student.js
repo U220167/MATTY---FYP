@@ -311,11 +311,14 @@ function showCheckInSuccess(result) {
   if (successDiv) {
     const attendance = result.attendance;
     const checkInTime = new Date(attendance.checked_in_at).toLocaleString();
+    const isLate = (attendance.status || '').toUpperCase() === 'LATE';
+    const statusDisplay = attendance.status || 'PRESENT';
+    const lateMins = attendance.minutes_late != null ? attendance.minutes_late : 0;
     
     successDiv.innerHTML = `
-      <h2>✓ Attendance Recorded Successfully</h2>
+      <h2>✓ ${result.message || 'Attendance Recorded Successfully'}</h2>
       <p>Check-in Time: ${checkInTime}</p>
-      <p>Status: ${attendance.status}</p>
+      <p>Status: <span class="status-badge status-${statusDisplay.toLowerCase()}">${statusDisplay}${isLate && lateMins > 0 ? ` (${lateMins} min late)` : ''}</span></p>
       <div class="btn-group mt-2">
         <a href="index.html" class="btn btn-primary">Done</a>
       </div>
