@@ -114,11 +114,11 @@ async function generateQRCode() {
     // TODO: Replace with POST /lecturer/lectures/:id/qr/generate
     currentQRData = await MockAPI.generateQR(lectureId);
 
-    // Display QR code
+    // Display QR code (pass seconds so we don't rely on server/client clock sync)
     displayQRCode(currentQRData);
 
-    // Start countdown timer
-    startCountdown(currentQRData.expires_at);
+    // Count down from the server's expires_in_seconds so we avoid "expired instantly" from clock skew
+    startCountdown(currentQRData.expires_in_seconds);
 
   } catch (error) {
     console.error('Error generating QR code:', error);
@@ -180,7 +180,7 @@ function displayQRCode(qrData) {
       ${localhostWarning}
       <img src="${qrData.qr_code}" alt="QR Code" class="qr-image" id="qr-image" />
       <div class="qr-token">Token: ${qrData.qr_token}</div>
-      <div class="countdown" id="countdown">Expires in: <span id="countdown-value">60</span>s</div>
+      <div class="countdown" id="countdown">Expires in: <span id="countdown-value">--</span>s</div>
       ${manualEntry}
     </div>
   `;
@@ -198,43 +198,34 @@ function displayQRCode(qrData) {
 }
 
 /**
- * Start countdown timer
+ * Start countdown timer using seconds-left from the API.
+ * We count down locally so server/client clock differences don't make the QR look expired right away.
  */
-function startCountdown(expiresAt) {
+function startCountdown(secondsLeft) {
   const countdownElement = document.getElementById('countdown-value');
   const countdownContainer = document.getElementById('countdown');
   
   if (!countdownElement || !countdownContainer) return;
 
-  const updateCountdown = () => {
-    const now = new Date();
-    const expiry = new Date(expiresAt);
-    const diff = Math.floor((expiry - now) / 1000);
+  // Handle bad or missing value (e.g. old API response)
+  let remaining = Math.max(0, Math.floor(Number(secondsLeft) || 0));
 
-    if (diff <= 0) {
+  const updateCountdown = () => {
+    if (remaining <= 0) {
       countdownElement.textContent = '0';
-      countdownContainer.textContent = 'Expired — Refresh required';
+      countdownContainer.textContent = 'Expired — Refresh to get a new code';
       countdownContainer.classList.add('expired');
       clearInterval(countdownInterval);
       
-      // Show expired message
-      const qrContainer = document.getElementById('qr-display');
-      if (qrContainer) {
-        const qrImage = document.getElementById('qr-image');
-        if (qrImage) {
-          qrImage.style.opacity = '0.5';
-        }
-      }
+      const qrImage = document.getElementById('qr-image');
+      if (qrImage) qrImage.style.opacity = '0.5';
     } else {
-      countdownElement.textContent = diff;
-      countdownContainer.innerHTML = `Expires in: <span id="countdown-value">${diff}</span>s`;
+      countdownElement.textContent = remaining;
+      remaining--;
     }
   };
 
-  // Update immediately
   updateCountdown();
-
-  // Update every second
   countdownInterval = setInterval(updateCountdown, 1000);
 }
 

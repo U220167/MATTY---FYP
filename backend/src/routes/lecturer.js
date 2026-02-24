@@ -107,6 +107,21 @@ router.put('/lectures/:id', async (req, res) => {
   }
 });
 
+// Permanently remove a lecture. DB cascade will clean up its QR sessions and attendance.
+router.delete('/lectures/:id', async (req, res) => {
+  try {
+    const lectureId = req.params.id;
+    const r = await pool.query('DELETE FROM lectures WHERE id = $1 AND lecturer_id = $2 RETURNING id', [lectureId, req.user.id]);
+    if (r.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'NOT_FOUND', message: 'Lecture not found' });
+    }
+    res.status(200).json({ success: true, message: 'Lecture deleted' });
+  } catch (err) {
+    console.error('Delete lecture:', err);
+    res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
+  }
+});
+
 router.post('/lectures/:id/qr/generate', async (req, res) => {
   try {
     const lectureId = req.params.id;

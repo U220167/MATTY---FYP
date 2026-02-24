@@ -170,6 +170,18 @@ export const MockAPI = {
     return await res.json();
   },
 
+  async deleteLecture(lectureId) {
+    const res = await fetch(API_BASE_URL + '/lecturer/lectures/' + lectureId, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.message || 'Failed to delete lecture');
+    }
+    return await res.json();
+  },
+
   async generateQR(lectureId) {
     const res = await fetch(API_BASE_URL + '/lecturer/lectures/' + lectureId + '/qr/generate', {
       method: 'POST',

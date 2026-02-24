@@ -651,16 +651,17 @@ window.deleteLecture = async function(lectureId) {
   }
 
   try {
-    // TODO: Replace with DELETE /lecturer/lectures/:id API call
+    // Remove on the server first so a refresh doesn't bring it back
+    if (Auth.getToken()) {
+      await MockAPI.deleteLecture(lectureId);
+    }
     allLectures = allLectures.filter(l => l.id !== lectureId);
     saveLectures();
 
-    // Reload dashboard
     await loadDashboard();
-
   } catch (error) {
     console.error('Error deleting lecture:', error);
-    alert('Error deleting lecture. Please try again.');
+    alert(error.message || 'Error deleting lecture. Please try again.');
   }
 };
 
