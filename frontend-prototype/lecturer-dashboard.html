@@ -80,6 +80,16 @@
         </div>
 
         <div class="form-group">
+          <label for="lecture-verification-question" class="form-label">Verification question (optional)</label>
+          <input type="text" id="lecture-verification-question" class="form-input" placeholder="e.g., What is the capital of Ireland?">
+          <p class="form-hint">Students must answer this correctly to submit attendance. Answer is not case sensitive.</p>
+        </div>
+        <div class="form-group">
+          <label for="lecture-verification-answer" class="form-label">Verification answer</label>
+          <input type="text" id="lecture-verification-answer" class="form-input" placeholder="Answer to the question above">
+        </div>
+
+        <div class="form-group">
           <label class="form-label" style="display: flex; align-items: center; gap: 0.5rem;">
             <input type="checkbox" id="lecture-repeat-weekly" style="width: auto;">
             <span>Repeat weekly</span>
@@ -95,6 +105,56 @@
         <div class="btn-group mt-3">
           <button type="submit" class="btn btn-primary">Create Lecture</button>
           <button type="button" class="btn btn-outline" id="cancel-create-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Lecture Modal -->
+  <div id="edit-lecture-modal" class="modal hidden">
+    <div class="modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>Edit Lecture</h2>
+        <button type="button" class="btn btn-outline" id="close-edit-modal-btn" style="padding: 0.5rem 1rem;">×</button>
+      </div>
+      
+      <form id="edit-lecture-form">
+        <input type="hidden" id="edit-lecture-id">
+        <div class="form-group">
+          <label for="edit-lecture-title" class="form-label">Title</label>
+          <input type="text" id="edit-lecture-title" class="form-input" required placeholder="e.g., Database Systems - Lecture 5">
+        </div>
+        <div class="form-group">
+          <label for="edit-lecture-date" class="form-label">Date</label>
+          <input type="date" id="edit-lecture-date" class="form-input" required>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="edit-lecture-start-time" class="form-label">Start Time</label>
+            <input type="time" id="edit-lecture-start-time" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-lecture-end-time" class="form-label">End Time</label>
+            <input type="time" id="edit-lecture-end-time" class="form-input" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="edit-lecture-location" class="form-label">Location</label>
+          <input type="text" id="edit-lecture-location" class="form-input" required placeholder="e.g., Room A123">
+        </div>
+        <div class="form-group">
+          <label for="edit-lecture-verification-question" class="form-label">Verification question (optional)</label>
+          <input type="text" id="edit-lecture-verification-question" class="form-input" placeholder="e.g., What is the capital of Ireland?">
+          <p class="form-hint">Students must answer correctly to submit attendance. Answer is not case sensitive.</p>
+        </div>
+        <div class="form-group">
+          <label for="edit-lecture-verification-answer" class="form-label">Verification answer</label>
+          <input type="text" id="edit-lecture-verification-answer" class="form-input" placeholder="Answer to the question above">
+        </div>
+        <div id="edit-lecture-error" class="alert alert-error hidden"></div>
+        <div class="btn-group mt-3">
+          <button type="submit" class="btn btn-primary">Update Lecture</button>
+          <button type="button" class="btn btn-outline" id="cancel-edit-btn">Cancel</button>
         </div>
       </form>
     </div>

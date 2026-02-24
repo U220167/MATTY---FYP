@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const routes = require('./routes');
+const { runMigrations } = require('./runMigrations');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,6 +17,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
 });
 
-app.listen(PORT, () => {
-  console.log('Server listening on port', PORT);
-});
+runMigrations()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log('Server listening on port', PORT);
+    });
+  })
+  .catch((err) => {
+    console.error('Startup failed:', err);
+    process.exit(1);
+  });

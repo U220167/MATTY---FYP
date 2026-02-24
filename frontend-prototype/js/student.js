@@ -6,6 +6,7 @@
 import { MockAPI, Auth, getQueryParam } from './main.js';
 
 let qrToken = null;
+let checkInInfo = null; // { lecture_title, verification_question } from API
 
 /**
  * Initialize student check-in page
@@ -94,7 +95,7 @@ export function initCheckInPage() {
 /**
  * Set up the check-in flow (login and check-in forms)
  */
-function setupCheckInFlow() {
+async function setupCheckInFlow() {
   // Set up login form submission (only if not already set up)
   const loginForm = document.getElementById('student-login-form');
   if (loginForm && !loginForm.dataset.listenerAttached) {
@@ -133,7 +134,7 @@ function setupCheckInFlow() {
   if (!Auth.isStudentLoggedIn()) {
     showLoginForm();
   } else {
-    showCheckInForm();
+    await showCheckInForm();
   }
 }
 
@@ -149,12 +150,15 @@ function showLoginForm() {
 }
 
 /**
- * Show check-in form
+ * Show check-in form and load verification question if applicable
  */
-function showCheckInForm() {
+async function showCheckInForm() {
   const loginSection = document.getElementById('login-section');
   const checkinSection = document.getElementById('checkin-section');
   const studentInfo = document.getElementById('student-info');
+  const verificationGroup = document.getElementById('checkin-verification-group');
+  const verificationLabel = document.getElementById('checkin-verification-label');
+  const verificationInput = document.getElementById('checkin-verification-answer');
   
   if (loginSection) loginSection.classList.add('hidden');
   if (checkinSection) checkinSection.classList.remove('hidden');
@@ -163,6 +167,25 @@ function showCheckInForm() {
     const studentId = Auth.getStudentId();
     const email = Auth.getEmail();
     studentInfo.textContent = studentId ? `Logged in as: ${studentId}` : `Logged in as: ${email}`;
+  }
+
+  checkInInfo = null;
+  if (verificationGroup) verificationGroup.classList.add('hidden');
+  if (verificationInput) verificationInput.value = '';
+  if (verificationInput) verificationInput.removeAttribute('required');
+
+  if (qrToken && Auth.getToken()) {
+    try {
+      const info = await MockAPI.getCheckInInfo(qrToken);
+      if (info && !info.error && info.verification_question) {
+        checkInInfo = info;
+        if (verificationLabel) verificationLabel.textContent = info.verification_question;
+        if (verificationGroup) verificationGroup.classList.remove('hidden');
+        if (verificationInput) verificationInput.setAttribute('required', 'required');
+      }
+    } catch (e) {
+      console.warn('Could not load check-in info:', e);
+    }
   }
 }
 
@@ -199,7 +222,7 @@ async function handleStudentLogin(e) {
       Auth.setToken(result.token);
       Auth.login(email, 'STUDENT', result.user);
       if (result.user.student_id) Auth.loginStudent(result.user.student_id);
-      if (qrToken) showCheckInForm();
+      if (qrToken) await showCheckInForm();
       else showLoginForm();
     }
   } catch (error) {
@@ -253,10 +276,16 @@ async function handleCheckIn(e) {
     submitBtn.textContent = 'Checking in...';
   }
 
+  const verificationInput = document.getElementById('checkin-verification-answer');
+  const answer = verificationInput ? verificationInput.value.trim() : '';
+  if (checkInInfo && checkInInfo.verification_question && !answer) {
+    showCheckInError('Please answer the verification question to submit attendance.');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Attendance'; }
+    return;
+  }
+
   try {
-    // Submit check-in
-    // TODO: Replace with POST /student/attendance/checkin
-    const result = await MockAPI.checkIn(qrToken);
+    const result = await MockAPI.checkIn(qrToken, answer);
 
     if (result.success) {
       // Show success message
@@ -271,6 +300,8 @@ async function handleCheckIn(e) {
         errorMessage = 'You have already checked in for this lecture.';
       } else if (result.error === 'LECTURE_NOT_FOUND') {
         errorMessage = 'Invalid QR code or lecture not found.';
+      } else if (result.error === 'VERIFICATION_FAILED') {
+        errorMessage = 'Incorrect answer. Please try again.';
       }
 
       showCheckInError(errorMessage);

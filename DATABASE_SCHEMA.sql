@@ -62,6 +62,8 @@ CREATE TABLE lectures (
     end_time TIME NOT NULL,
     location VARCHAR(255),
     description TEXT,
+    verification_question TEXT,
+    verification_answer TEXT,
     status VARCHAR(20) DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED', 'ACTIVE', 'COMPLETED', 'CANCELLED')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

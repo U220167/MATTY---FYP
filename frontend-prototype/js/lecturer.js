@@ -153,19 +153,24 @@ function setupEventListeners() {
   const modal = document.getElementById('create-lecture-modal');
   if (modal) {
     modal.addEventListener('click', (e) => {
-      // Only close if clicking on the modal backdrop, not the content
-      if (e.target === modal) {
-        closeCreateModal();
-      }
+      if (e.target === modal) closeCreateModal();
     });
-    
-    // Prevent clicks inside modal-content from closing the modal
     const modalContent = modal.querySelector('.modal-content');
-    if (modalContent) {
-      modalContent.addEventListener('click', (e) => {
-        e.stopPropagation();
-      });
-    }
+    if (modalContent) modalContent.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  // Edit lecture modal
+  const closeEditBtn = document.getElementById('close-edit-modal-btn');
+  const cancelEditBtn = document.getElementById('cancel-edit-btn');
+  if (closeEditBtn) closeEditBtn.addEventListener('click', closeEditModal);
+  if (cancelEditBtn) cancelEditBtn.addEventListener('click', closeEditModal);
+  const editForm = document.getElementById('edit-lecture-form');
+  if (editForm) editForm.addEventListener('submit', handleEditLecture);
+  const editModal = document.getElementById('edit-lecture-modal');
+  if (editModal) {
+    editModal.addEventListener('click', (e) => { if (e.target === editModal) closeEditModal(); });
+    const editContent = editModal.querySelector('.modal-content');
+    if (editContent) editContent.addEventListener('click', (e) => e.stopPropagation());
   }
 }
 
@@ -209,6 +214,112 @@ function closeCreateModal() {
 }
 
 /**
+ * Open edit lecture modal and load lecture data
+ */
+window.openEditModal = async function (lectureId) {
+  const modal = document.getElementById('edit-lecture-modal');
+  const errorDiv = document.getElementById('edit-lecture-error');
+  if (errorDiv) { errorDiv.classList.add('hidden'); errorDiv.textContent = ''; }
+  let lecture = null;
+  if (Auth.getToken()) {
+    try {
+      lecture = await MockAPI.getLecture(lectureId);
+    } catch (e) {
+      if (errorDiv) { errorDiv.textContent = 'Failed to load lecture.'; errorDiv.classList.remove('hidden'); }
+      return;
+    }
+  } else {
+    lecture = allLectures.find(l => l.id === lectureId);
+  }
+  if (!lecture) {
+    if (errorDiv) { errorDiv.textContent = 'Lecture not found.'; errorDiv.classList.remove('hidden'); }
+    return;
+  }
+  const dateStr = typeof lecture.lecture_date === 'string' ? lecture.lecture_date.slice(0, 10) : (lecture.lecture_date?.toISOString?.()?.slice(0, 10) || '');
+  const startTime = lecture.start_time ? String(lecture.start_time).slice(0, 5) : '';
+  const endTime = lecture.end_time ? String(lecture.end_time).slice(0, 5) : '';
+  document.getElementById('edit-lecture-id').value = lecture.id;
+  document.getElementById('edit-lecture-title').value = lecture.title || '';
+  document.getElementById('edit-lecture-date').value = dateStr;
+  document.getElementById('edit-lecture-start-time').value = startTime;
+  document.getElementById('edit-lecture-end-time').value = endTime;
+  document.getElementById('edit-lecture-location').value = lecture.location || '';
+  document.getElementById('edit-lecture-verification-question').value = lecture.verification_question || '';
+  document.getElementById('edit-lecture-verification-answer').value = lecture.verification_answer || '';
+  if (modal) modal.classList.remove('hidden');
+};
+
+/**
+ * Close edit lecture modal
+ */
+function closeEditModal() {
+  const modal = document.getElementById('edit-lecture-modal');
+  if (modal) modal.classList.add('hidden');
+  const form = document.getElementById('edit-lecture-form');
+  if (form) form.reset();
+  const errorDiv = document.getElementById('edit-lecture-error');
+  if (errorDiv) { errorDiv.classList.add('hidden'); errorDiv.textContent = ''; }
+}
+
+/**
+ * Handle edit lecture form submission
+ */
+async function handleEditLecture(e) {
+  e.preventDefault();
+  const errorDiv = document.getElementById('edit-lecture-error');
+  const id = parseInt(document.getElementById('edit-lecture-id').value, 10);
+  const title = document.getElementById('edit-lecture-title').value.trim();
+  const date = document.getElementById('edit-lecture-date').value;
+  const startTime = document.getElementById('edit-lecture-start-time').value;
+  const endTime = document.getElementById('edit-lecture-end-time').value;
+  const location = document.getElementById('edit-lecture-location').value.trim();
+  const verificationQuestion = document.getElementById('edit-lecture-verification-question').value.trim();
+  const verificationAnswer = document.getElementById('edit-lecture-verification-answer').value.trim();
+  if (!title || !date || !startTime || !endTime || !location) {
+    if (errorDiv) { errorDiv.textContent = 'Please fill in all required fields.'; errorDiv.classList.remove('hidden'); }
+    return;
+  }
+  if (verificationQuestion && !verificationAnswer) {
+    if (errorDiv) { errorDiv.textContent = 'Please provide an answer when you set a verification question.'; errorDiv.classList.remove('hidden'); }
+    return;
+  }
+  if (startTime >= endTime) {
+    if (errorDiv) { errorDiv.textContent = 'End time must be after start time.'; errorDiv.classList.remove('hidden'); }
+    return;
+  }
+  const startTimeStr = startTime.length === 5 ? startTime + ':00' : startTime;
+  const endTimeStr = endTime.length === 5 ? endTime + ':00' : endTime;
+  try {
+    if (Auth.getToken()) {
+      await MockAPI.updateLecture(id, {
+        title,
+        lecture_date: date,
+        start_time: startTimeStr,
+        end_time: endTimeStr,
+        location,
+        verification_question: verificationQuestion || null,
+        verification_answer: verificationAnswer || null
+      });
+      const idx = allLectures.findIndex(l => l.id === id);
+      if (idx !== -1) {
+        allLectures[idx] = { ...allLectures[idx], title, lecture_date: date, start_time: startTimeStr, end_time: endTimeStr, location, verification_question: verificationQuestion || null, verification_answer: verificationAnswer || null };
+      }
+    } else {
+      const idx = allLectures.findIndex(l => l.id === id);
+      if (idx !== -1) {
+        allLectures[idx] = { ...allLectures[idx], title, lecture_date: date, start_time: startTimeStr, end_time: endTimeStr, location, verification_question: verificationQuestion || null, verification_answer: verificationAnswer || null };
+      }
+      saveLectures();
+    }
+    closeEditModal();
+    await loadDashboard();
+  } catch (err) {
+    console.error('Error updating lecture:', err);
+    if (errorDiv) { errorDiv.textContent = err.message || 'Failed to update lecture.'; errorDiv.classList.remove('hidden'); }
+  }
+}
+
+/**
  * Handle create lecture form submission
  */
 async function handleCreateLecture(e) {
@@ -228,8 +339,17 @@ async function handleCreateLecture(e) {
   const repeatWeeks = repeatWeekly
     ? Math.min(52, Math.max(1, parseInt(document.getElementById('lecture-repeat-weeks')?.value || '1', 10)))
     : 1;
+  const verificationQuestion = document.getElementById('lecture-verification-question')?.value.trim() || '';
+  const verificationAnswer = document.getElementById('lecture-verification-answer')?.value.trim() || '';
 
-  // Validation
+  // Validation: if question is set, answer is required
+  if (verificationQuestion && !verificationAnswer) {
+    if (errorDiv) {
+      errorDiv.textContent = 'Please provide an answer when you set a verification question.';
+      errorDiv.classList.remove('hidden');
+    }
+    return;
+  }
   if (!title || !moduleCode || !moduleName || !date || !startTime || !endTime || !location) {
     if (errorDiv) {
       errorDiv.textContent = 'Please fill in all fields';
@@ -257,7 +377,9 @@ async function handleCreateLecture(e) {
         start_time: startTimeStr,
         end_time: endTimeStr,
         location,
-        repeat_weeks: repeatWeeks
+        repeat_weeks: repeatWeeks,
+        verification_question: verificationQuestion || undefined,
+        verification_answer: verificationAnswer || undefined
       };
       const created = await MockAPI.createLecture(body);
       const list = Array.isArray(created) ? created : (created.lectures || [created]);
@@ -269,6 +391,8 @@ async function handleCreateLecture(e) {
         end_time: l.end_time,
         location: l.location,
         status: l.status || 'SCHEDULED',
+        verification_question: l.verification_question,
+        verification_answer: l.verification_answer,
         module: { code: moduleCode, name: moduleName }
       }));
     } else {
@@ -284,7 +408,9 @@ async function handleCreateLecture(e) {
           start_time: startTimeStr,
           end_time: endTimeStr,
           location,
-          status: 'SCHEDULED'
+          status: 'SCHEDULED',
+          verification_question: verificationQuestion || null,
+          verification_answer: verificationAnswer || null
         });
       }
       saveLectures();
@@ -476,6 +602,7 @@ function displayTimetable(lectures) {
             <div class="timetable-lecture-actions">
               <button class="btn btn-primary" onclick="generateQR(${lecture.id})">Generate QR</button>
               <a href="attendance-list.html?lectureId=${lecture.id}" class="btn btn-outline">View Attendance</a>
+              <button class="btn btn-outline" onclick="openEditModal(${lecture.id})">Edit</button>
               <button class="delete-lecture-btn" onclick="deleteLecture(${lecture.id})">Delete</button>
             </div>
           </div>

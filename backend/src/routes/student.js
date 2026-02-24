@@ -6,9 +6,45 @@ const router = express.Router();
 
 const LATE_THRESHOLD_MINUTES = 5;
 
+/** GET check-in info by token: returns lecture title and verification question (no answer). Requires student auth. */
+router.get('/attendance/checkin-info', authenticate, requireRole('STUDENT'), async (req, res) => {
+  try {
+    const token = req.query.token;
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'token required' });
+    }
+    const session = await pool.query(
+      'SELECT lecture_id, expires_at FROM qr_sessions WHERE qr_token = $1 AND is_active = true',
+      [token]
+    );
+    if (session.rows.length === 0) {
+      return res.status(400).json({ success: false, error: 'QR_TOKEN_EXPIRED', message: 'The QR code has expired or is invalid.' });
+    }
+    const row = session.rows[0];
+    if (new Date(row.expires_at) < new Date()) {
+      return res.status(400).json({ success: false, error: 'QR_TOKEN_EXPIRED', message: 'The QR code has expired.' });
+    }
+    const lecture = await pool.query(
+      'SELECT id, title, verification_question FROM lectures WHERE id = $1',
+      [row.lecture_id]
+    );
+    if (lecture.rows.length === 0) {
+      return res.status(400).json({ success: false, error: 'LECTURE_NOT_FOUND', message: 'Invalid QR code or lecture not found.' });
+    }
+    const lec = lecture.rows[0];
+    res.json({
+      lecture_title: lec.title,
+      verification_question: lec.verification_question || null,
+    });
+  } catch (err) {
+    console.error('Check-in info:', err);
+    res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR', message: 'Failed to load check-in info' });
+  }
+});
+
 router.post('/attendance/checkin', authenticate, requireRole('STUDENT'), async (req, res) => {
   try {
-    const { qr_token } = req.body;
+    const { qr_token, answer } = req.body;
     if (!qr_token) {
       return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'qr_token required' });
     }
@@ -24,11 +60,19 @@ router.post('/attendance/checkin', authenticate, requireRole('STUDENT'), async (
       return res.status(400).json({ success: false, error: 'QR_TOKEN_EXPIRED', message: 'The QR code has expired. Please ask your lecturer for a new one.' });
     }
     const lecture = await pool.query(
-      'SELECT id, title, lecture_date, start_time FROM lectures WHERE id = $1',
+      'SELECT id, title, lecture_date, start_time, verification_question, verification_answer FROM lectures WHERE id = $1',
       [row.lecture_id]
     );
     if (lecture.rows.length === 0) {
       return res.status(400).json({ success: false, error: 'LECTURE_NOT_FOUND', message: 'Invalid QR code or lecture not found.' });
+    }
+    const lec = lecture.rows[0];
+    if (lec.verification_answer != null && String(lec.verification_answer).trim() !== '') {
+      const expected = String(lec.verification_answer).trim().toLowerCase();
+      const given = (answer != null ? String(answer).trim() : '').toLowerCase();
+      if (given !== expected) {
+        return res.status(400).json({ success: false, error: 'VERIFICATION_FAILED', message: 'Incorrect answer. Please try again.' });
+      }
     }
     const existing = await pool.query(
       'SELECT id FROM attendance WHERE student_id = $1 AND lecture_id = $2',
@@ -38,7 +82,6 @@ router.post('/attendance/checkin', authenticate, requireRole('STUDENT'), async (
       return res.status(400).json({ success: false, error: 'ALREADY_CHECKED_IN', message: 'You have already checked in for this lecture.' });
     }
     const now = new Date();
-    const lec = lecture.rows[0];
     const dateStr = typeof lec.lecture_date === 'string' ? lec.lecture_date : lec.lecture_date?.toISOString?.().slice(0, 10);
     const timeStr = typeof lec.start_time === 'string' ? lec.start_time : (lec.start_time && lec.start_time.length >= 8 ? lec.start_time : '00:00:00');
     const lectureStart = new Date(`${dateStr}T${timeStr}`);

@@ -7,7 +7,7 @@ const { authenticate, requireRole } = require('../middleware/auth');
 const router = express.Router();
 router.use(authenticate, requireRole('LECTURER'));
 
-const QR_TTL_SECONDS = 60;
+const QR_TTL_SECONDS = 30;
 const frontendUrl = () => process.env.FRONTEND_URL || 'https://matty-fyp.onrender.com';
 
 function generateQrToken() {
@@ -32,20 +32,22 @@ router.get('/lectures', async (req, res) => {
 
 router.post('/lectures', async (req, res) => {
   try {
-    const { module_id, title, lecture_date, start_time, end_time, location, repeat_weeks } = req.body;
+    const { module_id, title, lecture_date, start_time, end_time, location, repeat_weeks, verification_question, verification_answer } = req.body;
     if (!title || !lecture_date || !start_time || !end_time) {
       return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'title, lecture_date, start_time, end_time required' });
     }
     const weeks = Math.min(Math.max(parseInt(repeat_weeks, 10) || 1, 1), 52);
+    const q = (typeof verification_question === 'string' && verification_question.trim()) ? verification_question.trim() : null;
+    const a = (typeof verification_answer === 'string' && verification_answer.trim()) ? verification_answer.trim() : null;
     const created = [];
     for (let w = 0; w < weeks; w++) {
       const d = new Date(lecture_date);
       d.setDate(d.getDate() + w * 7);
       const dateStr = d.toISOString().slice(0, 10);
       const ins = await pool.query(
-        `INSERT INTO lectures (lecturer_id, module_id, title, lecture_date, start_time, end_time, location)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, title, lecture_date, start_time, end_time, location, status`,
-        [req.user.id, module_id || null, title, dateStr, start_time, end_time, location || null]
+        `INSERT INTO lectures (lecturer_id, module_id, title, lecture_date, start_time, end_time, location, verification_question, verification_answer)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, title, lecture_date, start_time, end_time, location, status, verification_question, verification_answer`,
+        [req.user.id, module_id || null, title, dateStr, start_time, end_time, location || null, q, a]
       );
       created.push(ins.rows[0]);
     }
@@ -60,6 +62,7 @@ router.get('/lectures/:id', async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT l.id, l.title, l.lecture_date, l.start_time, l.end_time, l.location, l.status, l.module_id,
+              l.verification_question, l.verification_answer,
               m.code AS module_code, m.name AS module_name
        FROM lectures l LEFT JOIN modules m ON l.module_id = m.id
        WHERE l.id = $1 AND l.lecturer_id = $2`,
@@ -69,6 +72,37 @@ router.get('/lectures/:id', async (req, res) => {
     res.json(r.rows[0]);
   } catch (err) {
     console.error('Get lecture:', err);
+    res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
+  }
+});
+
+router.put('/lectures/:id', async (req, res) => {
+  try {
+    const lectureId = req.params.id;
+    const { title, lecture_date, start_time, end_time, location, verification_question, verification_answer } = req.body;
+    const r = await pool.query('SELECT id FROM lectures WHERE id = $1 AND lecturer_id = $2', [lectureId, req.user.id]);
+    if (r.rows.length === 0) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    const updates = [];
+    const values = [];
+    let idx = 1;
+    if (title !== undefined) { updates.push(`title = $${idx}`); values.push(title); idx++; }
+    if (lecture_date !== undefined) { updates.push(`lecture_date = $${idx}`); values.push(lecture_date); idx++; }
+    if (start_time !== undefined) { updates.push(`start_time = $${idx}`); values.push(start_time); idx++; }
+    if (end_time !== undefined) { updates.push(`end_time = $${idx}`); values.push(end_time); idx++; }
+    if (location !== undefined) { updates.push(`location = $${idx}`); values.push(location); idx++; }
+    if (verification_question !== undefined) { updates.push(`verification_question = $${idx}`); values.push(verification_question && String(verification_question).trim() ? String(verification_question).trim() : null); idx++; }
+    if (verification_answer !== undefined) { updates.push(`verification_answer = $${idx}`); values.push(verification_answer && String(verification_answer).trim() ? String(verification_answer).trim() : null); idx++; }
+    if (updates.length === 0) return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'No fields to update' });
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(lectureId, req.user.id);
+    const q = await pool.query(
+      `UPDATE lectures SET ${updates.join(', ')} WHERE id = $${idx} AND lecturer_id = $${idx + 1} RETURNING id, title, lecture_date, start_time, end_time, location, status, verification_question, verification_answer`,
+      values
+    );
+    if (q.rows.length === 0) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    res.json(q.rows[0]);
+  } catch (err) {
+    console.error('Update lecture:', err);
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
   }
 });

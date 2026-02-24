@@ -151,6 +151,25 @@ export const MockAPI = {
     return await res.json();
   },
 
+  async getLecture(lectureId) {
+    const res = await fetch(API_BASE_URL + '/lecturer/lectures/' + lectureId, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to load lecture');
+    return await res.json();
+  },
+
+  async updateLecture(lectureId, body) {
+    const res = await fetch(API_BASE_URL + '/lecturer/lectures/' + lectureId, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Failed to update lecture');
+    }
+    return await res.json();
+  },
+
   async generateQR(lectureId) {
     const res = await fetch(API_BASE_URL + '/lecturer/lectures/' + lectureId + '/qr/generate', {
       method: 'POST',
@@ -163,11 +182,22 @@ export const MockAPI = {
     return this.generateQR(lectureId);
   },
 
-  async checkIn(qrToken) {
+  async getCheckInInfo(token) {
+    const res = await fetch(API_BASE_URL + '/student/attendance/checkin-info?token=' + encodeURIComponent(token), { headers: getAuthHeaders() });
+    if (!res.ok) {
+      const data = await res.json();
+      return { error: data.error || 'FAILED', message: data.message || 'Failed to load' };
+    }
+    return await res.json();
+  },
+
+  async checkIn(qrToken, answer) {
+    const body = { qr_token: qrToken };
+    if (answer !== undefined && answer !== null) body.answer = answer;
     const res = await fetch(API_BASE_URL + '/student/attendance/checkin', {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ qr_token: qrToken })
+      body: JSON.stringify(body)
     });
     const data = await res.json();
     if (!res.ok) return { success: false, error: data.error || 'CHECKIN_FAILED', message: data.message || 'Check-in failed' };

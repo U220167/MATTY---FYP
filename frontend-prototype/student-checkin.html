@@ -60,6 +60,10 @@
           <button id="logout-btn" class="btn btn-outline mb-2">Logout</button>
           
           <form id="checkin-form">
+            <div id="checkin-verification-group" class="form-group hidden">
+              <label for="checkin-verification-answer" id="checkin-verification-label" class="form-label"></label>
+              <input type="text" id="checkin-verification-answer" class="form-input" placeholder="Your answer" autocomplete="off">
+            </div>
             <div id="checkin-error" class="alert alert-error hidden"></div>
             <div id="checkin-success" class="alert alert-success hidden"></div>
             
