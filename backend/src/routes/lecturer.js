@@ -149,6 +149,28 @@ router.post('/lectures/:id/qr/generate', async (req, res) => {
   }
 });
 
+router.post('/lectures/:id/qr/stop', async (req, res) => {
+  try {
+    const lectureId = req.params.id;
+    const r = await pool.query('SELECT id FROM lectures WHERE id = $1 AND lecturer_id = $2', [lectureId, req.user.id]);
+    if (r.rows.length === 0) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+
+    const stopped = await pool.query(
+      'UPDATE qr_sessions SET is_active = false WHERE lecture_id = $1 AND is_active = true RETURNING id',
+      [lectureId]
+    );
+
+    res.json({
+      success: true,
+      message: stopped.rows.length > 0 ? 'Active QR session stopped' : 'No active QR session to stop',
+      stopped_count: stopped.rows.length,
+    });
+  } catch (err) {
+    console.error('QR stop:', err);
+    res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
+  }
+});
+
 router.get('/lectures/:id/qr/current', async (req, res) => {
   try {
     const lectureId = req.params.id;
