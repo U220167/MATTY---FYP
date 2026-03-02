@@ -1,9 +1,9 @@
 /**
- * Main.js - Shared helpers and mock API functions
- * TODO: Replace mock API calls with real API endpoints from API_SPECIFICATION.md
+ * Main.js - shared helpers and API calls for my frontend.
+ * I kept the name `MockAPI` from my early prototype, but these methods now hit my live backend.
  */
 
-// Live backend (Render)
+// My live backend (Render)
 const API_BASE_URL = 'https://matty-fyp-api.onrender.com/api/v1';
 
 function getAuthHeaders() {
@@ -91,8 +91,8 @@ export const Auth = {
 };
 
 /**
- * Mock API functions
- * TODO: Replace all mock functions with actual fetch calls to API endpoints
+ * API wrapper used across my pages.
+ * Legacy name note: `MockAPI` stayed for compatibility while I moved from prototype to live endpoints.
  */
 export const MockAPI = {
   async register(body) {
@@ -193,6 +193,15 @@ export const MockAPI = {
   async refreshQR(lectureId) {
     return this.generateQR(lectureId);
   },
+  async stopQR(lectureId) {
+    const res = await fetch(API_BASE_URL + '/lecturer/lectures/' + lectureId + '/qr/stop', {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to stop QR');
+    return data;
+  },
 
   async getCheckInInfo(token) {
     const res = await fetch(API_BASE_URL + '/student/attendance/checkin-info?token=' + encodeURIComponent(token), { headers: getAuthHeaders() });
@@ -229,20 +238,13 @@ export const MockAPI = {
 };
 
 /**
- * Generate a simple QR code data URI using a library or placeholder
- * In production, QR codes would be generated server-side
+ * Legacy helper from my early prototype experiments.
+ * I now generate real QR payloads on the backend, so this is currently unused.
  */
 function generateQRCodeDataURI(text) {
-  // For prototype, we'll use a QR code API or generate a simple placeholder
-  // Using a free QR code API service for demonstration
-  // In production, backend should generate QR codes using 'qrcode' npm package
-  
-  // Create a simple data URI placeholder with a pattern
-  // Real implementation would use: https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=...
+  // This stays here only for reference while I keep the old prototype path around.
   const qrAPIUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(text)}`;
-  
-  // Return the API URL (in production, backend should return base64 data URI)
-  // For now, return a placeholder that works with the QR API
+
   return qrAPIUrl;
 }
 

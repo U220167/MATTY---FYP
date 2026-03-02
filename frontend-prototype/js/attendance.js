@@ -1,6 +1,6 @@
 /**
- * Attendance.js - Attendance list rendering
- * TODO: Replace with API call to GET /lecturer/lectures/:id/attendance
+ * Attendance.js - my attendance list rendering and summary view.
+ * I already load attendance from my backend endpoint when authenticated.
  */
 
 import { MockAPI, Auth, getQueryParam, formatDate } from './main.js';
@@ -106,8 +106,8 @@ function displayAttendanceList(records, lectureId) {
     return;
   }
 
-  // Get all enrolled students (for demo, we'll show only those who checked in)
-  // In production, this would come from the API with enrolled students + attendance
+  // Right now I show students who have attendance rows returned by the API.
+  // A future improvement is to also show enrolled students who have not checked in yet.
   const tableHTML = `
     <div class="table-container">
       <table>

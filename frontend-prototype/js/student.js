@@ -1,6 +1,6 @@
 /**
- * Student.js - Student check-in logic
- * TODO: Replace with API calls to POST /student/attendance/checkin
+ * Student.js - my student check-in flow (token intake, login, verification question, submit).
+ * This file already posts check-ins to my live backend.
  */
 
 import { MockAPI, Auth, getQueryParam } from './main.js';

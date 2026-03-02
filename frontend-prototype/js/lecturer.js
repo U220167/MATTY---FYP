@@ -1,9 +1,7 @@
 /**
- * Lecturer.js - Lecturer dashboard logic with timetable view
- * TODO: Replace mock data with API calls to:
- *   - GET /lecturer/dashboard?date=YYYY-MM-DD
- *   - POST /lecturer/lectures
- *   - DELETE /lecturer/lectures/:id
+ * Lecturer.js - my lecturer dashboard logic (calendar, timetable, lecture CRUD, QR links).
+ * I now use my live API when a token is present.
+ * I still keep local fallback data so I can demo the UI without auth during quick checks.
  */
 
 import { MockAPI, Auth, formatTime, formatDate } from './main.js';
@@ -34,14 +32,14 @@ export async function initDashboard() {
 }
 
 /**
- * Load lectures from localStorage or initialize with mock data
+ * Load lectures from localStorage, or seed fallback demo data when needed.
  */
 function loadLectures() {
   const stored = localStorage.getItem('lecturer_lectures');
   if (stored) {
     allLectures = JSON.parse(stored);
   } else {
-    // Initialize with mock data
+    // Seed fallback demo data for no-auth/local runs.
     allLectures = [
       {
         id: 42,

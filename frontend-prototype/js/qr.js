@@ -1,9 +1,7 @@
 /**
- * QR.js - QR code generation and countdown timer
- * TODO: Replace with API calls to:
- *   - POST /lecturer/lectures/:id/qr/generate
- *   - POST /lecturer/lectures/:id/qr/refresh
- *   - GET /lecturer/lectures/:id/qr/current
+ * QR.js - my lecturer QR page logic (generate, display, and countdown).
+ * I already generate QR codes through my live backend endpoint.
+ * Remaining cleanup: lecture details still come from local mock JSON in this file.
  */
 
 import { MockAPI, Auth, getQueryParam } from './main.js';
@@ -25,8 +23,8 @@ export async function initQRPage() {
     return;
   }
 
-  // Load lecture details (would come from API in production)
-  // TODO: Replace with GET /lecturer/lectures/:id
+  // I still load lecture details from local mock JSON here.
+  // I can switch this to GET /lecturer/lectures/:id when I finish that cleanup.
   await loadLectureDetails(lectureId);
 
   // Generate initial QR code
@@ -57,8 +55,7 @@ export async function initQRPage() {
  * Load lecture details
  */
 async function loadLectureDetails(id) {
-  // In production, fetch from API: GET /lecturer/lectures/:id
-  // For now, we'll use mock data
+  // Current state: this section still reads mock data for lecture metadata.
   try {
     const response = await fetch('mocks/lectures.json');
     const lectures = await response.json();
@@ -110,8 +107,7 @@ async function generateQRCode() {
       qrContainer.innerHTML = '<p>Generating QR code...</p>';
     }
 
-    // Generate QR code
-    // TODO: Replace with POST /lecturer/lectures/:id/qr/generate
+    // Generate QR via my live backend endpoint.
     currentQRData = await MockAPI.generateQR(lectureId);
 
     // Display QR code (pass seconds so we don't rely on server/client clock sync)
@@ -148,7 +144,7 @@ function displayQRCode(qrData) {
     const port = window.location.port || '3000';
     localhostWarning = `
       <div class="alert alert-warning mb-2">
-        <strong>⚠️ Note for Local Testing:</strong> Phones cannot scan localhost URLs.
+        <strong> Note for Local Testing:</strong> Phones cannot scan localhost URLs.
         <br><br>
         <strong>Option 1 - Use your computer's IP address:</strong>
         <ol style="text-align: left; margin-top: 0.5rem;">
@@ -230,25 +226,33 @@ function startCountdown(secondsLeft) {
 }
 
 /**
- * Stop QR code (clear countdown and disable)
+ * Stop QR code on backend, then update the UI state.
  */
-function stopQRCode() {
-  if (countdownInterval) {
-    clearInterval(countdownInterval);
-  }
+async function stopQRCode() {
+  try {
+    await MockAPI.stopQR(lectureId);
 
-  const countdownContainer = document.getElementById('countdown');
-  if (countdownContainer) {
-    countdownContainer.textContent = 'QR Code Stopped';
-    countdownContainer.classList.add('expired');
-  }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+    }
 
-  const qrImage = document.getElementById('qr-image');
-  if (qrImage) {
-    qrImage.style.opacity = '0.5';
-  }
+    const countdownContainer = document.getElementById('countdown');
+    if (countdownContainer) {
+      countdownContainer.textContent = 'QR Code Stopped';
+      countdownContainer.classList.add('expired');
+    }
 
-  // TODO: In production, call POST /lecturer/lectures/:id/qr/stop to deactivate on backend
+    const qrImage = document.getElementById('qr-image');
+    if (qrImage) {
+      qrImage.style.opacity = '0.5';
+    }
+  } catch (error) {
+    console.error('Error stopping QR code:', error);
+    const qrContainer = document.getElementById('qr-display');
+    if (qrContainer) {
+      qrContainer.innerHTML = '<div class="alert alert-error">Failed to stop QR code. Please try again.</div>';
+    }
+  }
 }
 
 // Initialize on page load
