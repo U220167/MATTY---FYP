@@ -40,7 +40,7 @@ router.get('/lectures', async (req, res) => {
 
 router.post('/lectures', async (req, res) => {
   try {
-    const { module_id, title, lecture_date, start_time, end_time, location, repeat_weeks, verification_question, verification_answer, qr_expiry_seconds } = req.body;
+    const { module_id, module_code, module_name, title, lecture_date, start_time, end_time, location, repeat_weeks, verification_question, verification_answer, qr_expiry_seconds } = req.body;
     if (!title || !lecture_date || !start_time || !end_time) {
       return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'title, lecture_date, start_time, end_time required' });
     }
@@ -48,6 +48,20 @@ router.post('/lectures', async (req, res) => {
     const q = (typeof verification_question === 'string' && verification_question.trim()) ? verification_question.trim() : null;
     const a = (typeof verification_answer === 'string' && verification_answer.trim()) ? verification_answer.trim() : null;
     const qrExpiry = parseQrExpiry(qr_expiry_seconds);
+
+    let resolvedModuleId = module_id || null;
+    if (!resolvedModuleId && module_code && typeof module_code === 'string' && module_code.trim()) {
+      const code = module_code.trim().toUpperCase();
+      const name = (module_name && typeof module_name === 'string' && module_name.trim()) ? module_name.trim() : code;
+      const mod = await pool.query('SELECT id FROM modules WHERE code = $1', [code]);
+      if (mod.rows.length > 0) {
+        resolvedModuleId = mod.rows[0].id;
+      } else {
+        const ins = await pool.query('INSERT INTO modules (code, name) VALUES ($1, $2) ON CONFLICT (code) DO UPDATE SET name = $2 RETURNING id', [code, name]);
+        resolvedModuleId = ins.rows[0].id;
+      }
+    }
+
     const created = [];
     for (let w = 0; w < weeks; w++) {
       const d = new Date(lecture_date);
@@ -56,7 +70,7 @@ router.post('/lectures', async (req, res) => {
       const ins = await pool.query(
         `INSERT INTO lectures (lecturer_id, module_id, title, lecture_date, start_time, end_time, location, verification_question, verification_answer, qr_expiry_seconds)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, title, lecture_date, start_time, end_time, location, status, verification_question, verification_answer, qr_expiry_seconds`,
-        [req.user.id, module_id || null, title, dateStr, start_time, end_time, location || null, q, a, qrExpiry]
+        [req.user.id, resolvedModuleId, title, dateStr, start_time, end_time, location || null, q, a, qrExpiry]
       );
       created.push(ins.rows[0]);
     }

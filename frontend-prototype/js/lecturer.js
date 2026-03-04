@@ -389,22 +389,13 @@ async function handleCreateLecture(e) {
         repeat_weeks: repeatWeeks,
         qr_expiry_seconds: qrExpirySeconds,
         verification_question: verificationQuestion || undefined,
-        verification_answer: verificationAnswer || undefined
+        verification_answer: verificationAnswer || undefined,
+        module_code: moduleCode || undefined,
+        module_name: moduleName || undefined
       };
-      const created = await MockAPI.createLecture(body);
-      const list = Array.isArray(created) ? created : (created.lectures || [created]);
-      list.forEach(l => allLectures.push({
-        id: l.id,
-        title: l.title,
-        lecture_date: l.lecture_date,
-        start_time: l.start_time,
-        end_time: l.end_time,
-        location: l.location,
-        status: l.status || 'SCHEDULED',
-        verification_question: l.verification_question,
-        verification_answer: l.verification_answer,
-        module: { code: moduleCode, name: moduleName }
-      }));
+      await MockAPI.createLecture(body);
+      const data = await MockAPI.getLecturerDashboard();
+      allLectures = data.lectures || [];
     } else {
       for (let w = 0; w < repeatWeeks; w++) {
         const d = new Date(date);
@@ -605,7 +596,7 @@ function displayTimetable(lectures) {
               <div>
                 <div class="timetable-lecture-time">${formatTime(lecture.start_time)} - ${formatTime(lecture.end_time)}</div>
                 <div class="timetable-lecture-title">${lecture.title}</div>
-                <div class="timetable-lecture-module">📚 ${lecture.module.code} - ${lecture.module.name}</div>
+                <div class="timetable-lecture-module">📚 ${[lecture.module?.code, lecture.module?.name].filter(Boolean).join(' - ') || '—'}</div>
                 <div class="timetable-lecture-location">📍 ${lecture.location}</div>
               </div>
             </div>
