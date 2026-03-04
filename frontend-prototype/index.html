@@ -78,7 +78,7 @@
       }
 
       try {
-        // Uses my live login endpoint through the shared API wrapper.
+        // Uses the login endpoint through the shared API wrapper.
         const result = await MockAPI.login(email, password, role);
         
         if (result.success) {

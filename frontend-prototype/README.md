@@ -1,8 +1,8 @@
 # Maynooth Attendance Tool - Frontend
 
-This folder contains my static frontend (`HTML`, `CSS`, `vanilla JS`) for the attendance app.
+This folder contains the static frontend (`HTML`, `CSS`, `vanilla JS`) for the attendance app.
 
-It now talks to my live backend API.  
+It connects to the live backend API.  
 It is no longer a frontend-only mock.
 
 ## Folder structure

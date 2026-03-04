@@ -1,9 +1,9 @@
 /**
- * Main.js - shared helpers and API calls for my frontend.
- * I kept the name `MockAPI` from my early prototype, but these methods now hit my live backend.
+ * Main.js - shared helpers and API calls for the frontend.
+ * The MockAPI name is retained from the prototype; these methods call the live backend.
  */
 
-// My live backend (Render)
+// Live backend (Render)
 const API_BASE_URL = 'https://matty-fyp-api.onrender.com/api/v1';
 
 function getAuthHeaders() {
@@ -91,8 +91,8 @@ export const Auth = {
 };
 
 /**
- * API wrapper used across my pages.
- * Legacy name note: `MockAPI` stayed for compatibility while I moved from prototype to live endpoints.
+ * API wrapper used across pages.
+ * MockAPI name retained for compatibility with the prototype.
  */
 export const MockAPI = {
   async register(body) {
@@ -234,11 +234,27 @@ export const MockAPI = {
     if (!res.ok) throw new Error('Failed to load attendance');
     const data = await res.json();
     return { lecture: data.lecture, attendance: data.attendance || [] };
+  },
+
+  async downloadAttendanceCsv(lectureId) {
+    const res = await fetch(API_BASE_URL + '/lecturer/lectures/' + lectureId + '/attendance/csv', { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to download CSV');
+    const blob = await res.blob();
+    const contentDisposition = res.headers.get('Content-Disposition');
+    let filename = `attendance-lecture-${lectureId}.csv`;
+    const match = contentDisposition && contentDisposition.match(/filename="([^"]+)"/);
+    if (match) filename = match[1];
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 };
 
 /**
- * Legacy helper from my early prototype experiments.
+ * Legacy helper from the prototype.
  * I now generate real QR payloads on the backend, so this is currently unused.
  */
 function generateQRCodeDataURI(text) {

@@ -1,7 +1,6 @@
 /**
- * Lecturer.js - my lecturer dashboard logic (calendar, timetable, lecture CRUD, QR links).
- * I now use my live API when a token is present.
- * I still keep local fallback data so I can demo the UI without auth during quick checks.
+ * Lecturer.js - lecturer dashboard logic (calendar, timetable, lecture CRUD, QR links).
+ * Uses the live API when a token is present. Local fallback data for UI demo without auth.
  */
 
 import { MockAPI, Auth, formatTime, formatDate } from './main.js';
@@ -32,7 +31,7 @@ export async function initDashboard() {
 }
 
 /**
- * Load lectures from localStorage, or seed fallback demo data when needed.
+ * Load lectures from localStorage or seed fallback demo data when needed.
  */
 function loadLectures() {
   const stored = localStorage.getItem('lecturer_lectures');
@@ -242,6 +241,15 @@ window.openEditModal = async function (lectureId) {
   document.getElementById('edit-lecture-start-time').value = startTime;
   document.getElementById('edit-lecture-end-time').value = endTime;
   document.getElementById('edit-lecture-location').value = lecture.location || '';
+  const qrExpirySelect = document.getElementById('edit-lecture-qr-expiry');
+  if (qrExpirySelect) {
+    const val = String(lecture.qr_expiry_seconds ?? 30);
+    if (qrExpirySelect.querySelector(`option[value="${val}"]`)) {
+      qrExpirySelect.value = val;
+    } else {
+      qrExpirySelect.value = '30';
+    }
+  }
   document.getElementById('edit-lecture-verification-question').value = lecture.verification_question || '';
   document.getElementById('edit-lecture-verification-answer').value = lecture.verification_answer || '';
   if (modal) modal.classList.remove('hidden');
@@ -271,6 +279,7 @@ async function handleEditLecture(e) {
   const startTime = document.getElementById('edit-lecture-start-time').value;
   const endTime = document.getElementById('edit-lecture-end-time').value;
   const location = document.getElementById('edit-lecture-location').value.trim();
+  const qrExpirySeconds = parseInt(document.getElementById('edit-lecture-qr-expiry')?.value || '30', 10);
   const verificationQuestion = document.getElementById('edit-lecture-verification-question').value.trim();
   const verificationAnswer = document.getElementById('edit-lecture-verification-answer').value.trim();
   if (!title || !date || !startTime || !endTime || !location) {
@@ -295,12 +304,13 @@ async function handleEditLecture(e) {
         start_time: startTimeStr,
         end_time: endTimeStr,
         location,
+        qr_expiry_seconds: qrExpirySeconds,
         verification_question: verificationQuestion || null,
         verification_answer: verificationAnswer || null
       });
       const idx = allLectures.findIndex(l => l.id === id);
       if (idx !== -1) {
-        allLectures[idx] = { ...allLectures[idx], title, lecture_date: date, start_time: startTimeStr, end_time: endTimeStr, location, verification_question: verificationQuestion || null, verification_answer: verificationAnswer || null };
+        allLectures[idx] = { ...allLectures[idx], title, lecture_date: date, start_time: startTimeStr, end_time: endTimeStr, location, qr_expiry_seconds: qrExpirySeconds, verification_question: verificationQuestion || null, verification_answer: verificationAnswer || null };
       }
     } else {
       const idx = allLectures.findIndex(l => l.id === id);
@@ -339,6 +349,7 @@ async function handleCreateLecture(e) {
     : 1;
   const verificationQuestion = document.getElementById('lecture-verification-question')?.value.trim() || '';
   const verificationAnswer = document.getElementById('lecture-verification-answer')?.value.trim() || '';
+  const qrExpirySeconds = parseInt(document.getElementById('lecture-qr-expiry')?.value || '30', 10);
 
   // Validation: if question is set, answer is required
   if (verificationQuestion && !verificationAnswer) {
@@ -376,6 +387,7 @@ async function handleCreateLecture(e) {
         end_time: endTimeStr,
         location,
         repeat_weeks: repeatWeeks,
+        qr_expiry_seconds: qrExpirySeconds,
         verification_question: verificationQuestion || undefined,
         verification_answer: verificationAnswer || undefined
       };

@@ -1,9 +1,11 @@
 # Database migrations
 
-I run these scripts in order when I upgrade an existing database.
+Run these scripts in order when upgrading an existing database.
 
 - `001_add_lecture_verification_qa.sql`  
   Adds `verification_question` and `verification_answer` to `lectures`.
+- `002_add_lecture_qr_expiry_seconds.sql`  
+  Adds `qr_expiry_seconds` (15–120 seconds, default 30) to `lectures`.
 
 Example (run from project root):
 
@@ -11,4 +13,4 @@ Example (run from project root):
 psql $DATABASE_URL -f backend/migrations/001_add_lecture_verification_qa.sql
 ```
 
-If I am using another SQL client, I run the same SQL file manually.
+With another SQL client, run the same SQL file manually.

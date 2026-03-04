@@ -80,6 +80,18 @@
         </div>
 
         <div class="form-group">
+          <label for="lecture-qr-expiry" class="form-label">QR code expiry (seconds)</label>
+          <select id="lecture-qr-expiry" class="form-select">
+            <option value="15">15 seconds</option>
+            <option value="30" selected>30 seconds</option>
+            <option value="60">60 seconds</option>
+            <option value="90">90 seconds</option>
+            <option value="120">120 seconds</option>
+          </select>
+          <p class="form-hint">How long the QR code stays valid before students must scan a new one.</p>
+        </div>
+
+        <div class="form-group">
           <label for="lecture-verification-question" class="form-label">Verification question (optional)</label>
           <input type="text" id="lecture-verification-question" class="form-input" placeholder="e.g., What is the capital of Ireland?">
           <p class="form-hint">Students must answer this correctly to submit attendance. Answer is not case sensitive.</p>
@@ -141,6 +153,16 @@
         <div class="form-group">
           <label for="edit-lecture-location" class="form-label">Location</label>
           <input type="text" id="edit-lecture-location" class="form-input" required placeholder="e.g., Room A123">
+        </div>
+        <div class="form-group">
+          <label for="edit-lecture-qr-expiry" class="form-label">QR code expiry (seconds)</label>
+          <select id="edit-lecture-qr-expiry" class="form-select">
+            <option value="15">15 seconds</option>
+            <option value="30">30 seconds</option>
+            <option value="60">60 seconds</option>
+            <option value="90">90 seconds</option>
+            <option value="120">120 seconds</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="edit-lecture-verification-question" class="form-label">Verification question (optional)</label>

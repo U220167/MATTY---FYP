@@ -1,6 +1,6 @@
 /**
- * Student.js - my student check-in flow (token intake, login, verification question, submit).
- * This file already posts check-ins to my live backend.
+ * Student.js - student check-in flow (token intake, login, verification question, submit).
+ * Posts check-ins to the backend API.
  */
 
 import { MockAPI, Auth, getQueryParam } from './main.js';

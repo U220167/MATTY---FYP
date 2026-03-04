@@ -1,7 +1,6 @@
 /**
- * QR.js - my lecturer QR page logic (generate, display, and countdown).
- * I already generate QR codes through my live backend endpoint.
- * Remaining cleanup: lecture details still come from local mock JSON in this file.
+ * QR.js - lecturer QR page logic (generate, display, and countdown).
+ * QR codes are generated via the backend API.
  */
 
 import { MockAPI, Auth, getQueryParam } from './main.js';
@@ -23,8 +22,6 @@ export async function initQRPage() {
     return;
   }
 
-  // I still load lecture details from local mock JSON here.
-  // I can switch this to GET /lecturer/lectures/:id when I finish that cleanup.
   await loadLectureDetails(lectureId);
 
   // Generate initial QR code
@@ -52,35 +49,39 @@ export async function initQRPage() {
 }
 
 /**
- * Load lecture details
+ * Load lecture details from the API
  */
 async function loadLectureDetails(id) {
-  // Current state: this section still reads mock data for lecture metadata.
   try {
-    const response = await fetch('mocks/lectures.json');
-    const lectures = await response.json();
-    const lecture = lectures.find(l => l.id === id);
+    const lecture = await MockAPI.getLecture(id);
 
-    if (lecture) {
-      const titleElement = document.getElementById('lecture-title');
-      const detailsElement = document.getElementById('lecture-details');
-      
-      if (titleElement) {
-        titleElement.textContent = `${lecture.module.code} - ${lecture.title}`;
-      }
-      
-      if (detailsElement) {
-        const date = new Date(lecture.lecture_date).toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-        detailsElement.textContent = `${date} | ${formatTime(lecture.start_time)} - ${formatTime(lecture.end_time)} | ${lecture.location}`;
-      }
+    const titleElement = document.getElementById('lecture-title');
+    const detailsElement = document.getElementById('lecture-details');
+
+    if (titleElement) {
+      const titleText = lecture.module_code ? `${lecture.module_code} - ${lecture.title}` : lecture.title || 'Lecture';
+      titleElement.textContent = titleText;
+    }
+
+    if (detailsElement) {
+      const date = lecture.lecture_date
+        ? new Date(lecture.lecture_date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+        : '';
+      const timeRange = lecture.start_time && lecture.end_time
+        ? `${formatTime(lecture.start_time)} - ${formatTime(lecture.end_time)}`
+        : '';
+      const locationPart = lecture.location ? ` | ${lecture.location}` : '';
+      detailsElement.textContent = [date, timeRange].filter(Boolean).join(' | ') + locationPart;
     }
   } catch (error) {
     console.error('Error loading lecture details:', error);
+    const titleElement = document.getElementById('lecture-title');
+    if (titleElement) titleElement.textContent = 'Lecture';
   }
 }
 
@@ -88,8 +89,9 @@ async function loadLectureDetails(id) {
  * Format time helper
  */
 function formatTime(timeString) {
-  const [hours, minutes] = timeString.split(':');
-  return `${hours}:${minutes}`;
+  if (!timeString) return '';
+  const [hours, minutes] = String(timeString).split(':');
+  return [hours, minutes].filter(Boolean).join(':') || '';
 }
 
 /**
@@ -107,7 +109,7 @@ async function generateQRCode() {
       qrContainer.innerHTML = '<p>Generating QR code...</p>';
     }
 
-    // Generate QR via my live backend endpoint.
+    // Generate QR via the backend API.
     currentQRData = await MockAPI.generateQR(lectureId);
 
     // Display QR code (pass seconds so we don't rely on server/client clock sync)

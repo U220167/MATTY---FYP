@@ -34,6 +34,11 @@ router.post('/register', async (req, res) => {
     res.status(201).json({ message: 'User registered successfully', user: { id: user.id, email: user.email, role: user.role, first_name: user.first_name, last_name: user.last_name } });
   } catch (err) {
     if (err.code === '23505') {
+      // Unique violation: distinguish email vs student_id
+      const constraint = (err.constraint || '').toLowerCase();
+      if (constraint.includes('student_id')) {
+        return res.status(400).json({ success: false, error: 'STUDENT_ID_EXISTS', message: 'Student number is already in use' });
+      }
       return res.status(400).json({ success: false, error: 'EMAIL_EXISTS', message: 'Email already registered' });
     }
     console.error('Register error:', err);

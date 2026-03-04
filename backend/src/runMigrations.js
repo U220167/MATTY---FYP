@@ -10,6 +10,10 @@ async function runMigrations() {
         ADD COLUMN IF NOT EXISTS verification_question TEXT,
         ADD COLUMN IF NOT EXISTS verification_answer TEXT;
     `);
+    await pool.query(`
+      ALTER TABLE lectures
+        ADD COLUMN IF NOT EXISTS qr_expiry_seconds INTEGER DEFAULT 30;
+    `);
     console.log('Migrations OK');
   } catch (err) {
     console.error('Migration error:', err.message);

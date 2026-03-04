@@ -7,8 +7,16 @@ const { authenticate, requireRole } = require('../middleware/auth');
 const router = express.Router();
 router.use(authenticate, requireRole('LECTURER'));
 
-const QR_TTL_SECONDS = 30;
+const QR_TTL_DEFAULT = 30;
+const QR_TTL_MIN = 15;
+const QR_TTL_MAX = 120;
 const frontendUrl = () => process.env.FRONTEND_URL || 'https://matty-fyp.onrender.com';
+
+function parseQrExpiry(val) {
+  const n = parseInt(val, 10);
+  if (!Number.isFinite(n)) return QR_TTL_DEFAULT;
+  return Math.min(QR_TTL_MAX, Math.max(QR_TTL_MIN, n));
+}
 
 function generateQrToken() {
   return 'att_' + crypto.randomBytes(16).toString('hex') + '_' + Math.floor(Date.now() / 1000);
@@ -32,22 +40,23 @@ router.get('/lectures', async (req, res) => {
 
 router.post('/lectures', async (req, res) => {
   try {
-    const { module_id, title, lecture_date, start_time, end_time, location, repeat_weeks, verification_question, verification_answer } = req.body;
+    const { module_id, title, lecture_date, start_time, end_time, location, repeat_weeks, verification_question, verification_answer, qr_expiry_seconds } = req.body;
     if (!title || !lecture_date || !start_time || !end_time) {
       return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'title, lecture_date, start_time, end_time required' });
     }
     const weeks = Math.min(Math.max(parseInt(repeat_weeks, 10) || 1, 1), 52);
     const q = (typeof verification_question === 'string' && verification_question.trim()) ? verification_question.trim() : null;
     const a = (typeof verification_answer === 'string' && verification_answer.trim()) ? verification_answer.trim() : null;
+    const qrExpiry = parseQrExpiry(qr_expiry_seconds);
     const created = [];
     for (let w = 0; w < weeks; w++) {
       const d = new Date(lecture_date);
       d.setDate(d.getDate() + w * 7);
       const dateStr = d.toISOString().slice(0, 10);
       const ins = await pool.query(
-        `INSERT INTO lectures (lecturer_id, module_id, title, lecture_date, start_time, end_time, location, verification_question, verification_answer)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, title, lecture_date, start_time, end_time, location, status, verification_question, verification_answer`,
-        [req.user.id, module_id || null, title, dateStr, start_time, end_time, location || null, q, a]
+        `INSERT INTO lectures (lecturer_id, module_id, title, lecture_date, start_time, end_time, location, verification_question, verification_answer, qr_expiry_seconds)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id, title, lecture_date, start_time, end_time, location, status, verification_question, verification_answer, qr_expiry_seconds`,
+        [req.user.id, module_id || null, title, dateStr, start_time, end_time, location || null, q, a, qrExpiry]
       );
       created.push(ins.rows[0]);
     }
@@ -62,7 +71,7 @@ router.get('/lectures/:id', async (req, res) => {
   try {
     const r = await pool.query(
       `SELECT l.id, l.title, l.lecture_date, l.start_time, l.end_time, l.location, l.status, l.module_id,
-              l.verification_question, l.verification_answer,
+              l.verification_question, l.verification_answer, l.qr_expiry_seconds,
               m.code AS module_code, m.name AS module_name
        FROM lectures l LEFT JOIN modules m ON l.module_id = m.id
        WHERE l.id = $1 AND l.lecturer_id = $2`,
@@ -79,7 +88,7 @@ router.get('/lectures/:id', async (req, res) => {
 router.put('/lectures/:id', async (req, res) => {
   try {
     const lectureId = req.params.id;
-    const { title, lecture_date, start_time, end_time, location, verification_question, verification_answer } = req.body;
+    const { title, lecture_date, start_time, end_time, location, verification_question, verification_answer, qr_expiry_seconds } = req.body;
     const r = await pool.query('SELECT id FROM lectures WHERE id = $1 AND lecturer_id = $2', [lectureId, req.user.id]);
     if (r.rows.length === 0) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
     const updates = [];
@@ -92,11 +101,12 @@ router.put('/lectures/:id', async (req, res) => {
     if (location !== undefined) { updates.push(`location = $${idx}`); values.push(location); idx++; }
     if (verification_question !== undefined) { updates.push(`verification_question = $${idx}`); values.push(verification_question && String(verification_question).trim() ? String(verification_question).trim() : null); idx++; }
     if (verification_answer !== undefined) { updates.push(`verification_answer = $${idx}`); values.push(verification_answer && String(verification_answer).trim() ? String(verification_answer).trim() : null); idx++; }
+    if (qr_expiry_seconds !== undefined) { updates.push(`qr_expiry_seconds = $${idx}`); values.push(parseQrExpiry(qr_expiry_seconds)); idx++; }
     if (updates.length === 0) return res.status(400).json({ success: false, error: 'VALIDATION_ERROR', message: 'No fields to update' });
     updates.push('updated_at = CURRENT_TIMESTAMP');
     values.push(lectureId, req.user.id);
     const q = await pool.query(
-      `UPDATE lectures SET ${updates.join(', ')} WHERE id = $${idx} AND lecturer_id = $${idx + 1} RETURNING id, title, lecture_date, start_time, end_time, location, status, verification_question, verification_answer`,
+      `UPDATE lectures SET ${updates.join(', ')} WHERE id = $${idx} AND lecturer_id = $${idx + 1} RETURNING id, title, lecture_date, start_time, end_time, location, status, verification_question, verification_answer, qr_expiry_seconds`,
       values
     );
     if (q.rows.length === 0) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
@@ -125,11 +135,12 @@ router.delete('/lectures/:id', async (req, res) => {
 router.post('/lectures/:id/qr/generate', async (req, res) => {
   try {
     const lectureId = req.params.id;
-    const r = await pool.query('SELECT id FROM lectures WHERE id = $1 AND lecturer_id = $2', [lectureId, req.user.id]);
+    const r = await pool.query('SELECT id, qr_expiry_seconds FROM lectures WHERE id = $1 AND lecturer_id = $2', [lectureId, req.user.id]);
     if (r.rows.length === 0) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    const ttl = parseQrExpiry(r.rows[0].qr_expiry_seconds);
     await pool.query("UPDATE qr_sessions SET is_active = false WHERE lecture_id = $1", [lectureId]);
     const token = generateQrToken();
-    const expiresAt = new Date(Date.now() + QR_TTL_SECONDS * 1000);
+    const expiresAt = new Date(Date.now() + ttl * 1000);
     await pool.query(
       'INSERT INTO qr_sessions (lecture_id, qr_token, expires_at) VALUES ($1, $2, $3)',
       [lectureId, token, expiresAt]
@@ -141,7 +152,7 @@ router.post('/lectures/:id/qr/generate', async (req, res) => {
       qr_token: token,
       qr_url: qrUrl,
       expires_at: expiresAt.toISOString(),
-      expires_in_seconds: QR_TTL_SECONDS,
+      expires_in_seconds: ttl,
     });
   } catch (err) {
     console.error('QR generate:', err);
@@ -226,6 +237,46 @@ router.get('/lectures/:id/attendance', async (req, res) => {
     });
   } catch (err) {
     console.error('Attendance list:', err);
+    res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
+  }
+});
+
+function escapeCsvField(val) {
+  if (val == null) return '';
+  const s = String(val);
+  if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+router.get('/lectures/:id/attendance/csv', async (req, res) => {
+  try {
+    const lectureId = req.params.id;
+    const r = await pool.query('SELECT id, title, lecture_date, start_time, end_time FROM lectures WHERE id = $1 AND lecturer_id = $2', [lectureId, req.user.id]);
+    if (r.rows.length === 0) return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+    const lecture = r.rows[0];
+    const att = await pool.query(
+      `SELECT a.checked_in_at, a.status, a.minutes_late, u.student_id, u.first_name, u.last_name
+       FROM attendance a JOIN users u ON a.student_id = u.id WHERE a.lecture_id = $1 ORDER BY a.checked_in_at`,
+      [lectureId]
+    );
+    const header = ['Student ID', 'First Name', 'Last Name', 'Checked In At', 'Status', 'Minutes Late'];
+    const rows = att.rows.map((a) => [
+      escapeCsvField(a.student_id),
+      escapeCsvField(a.first_name),
+      escapeCsvField(a.last_name),
+      escapeCsvField(a.checked_in_at ? new Date(a.checked_in_at).toISOString() : ''),
+      escapeCsvField(a.status || 'PRESENT'),
+      escapeCsvField(a.minutes_late ?? ''),
+    ]);
+    const csv = [header.join(','), ...rows.map((row) => row.join(','))].join('\r\n');
+    const filename = `attendance-${lecture.title.replace(/[^a-zA-Z0-9-_]/g, '_')}-${lecture.lecture_date}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv); // BOM for Excel UTF-8
+  } catch (err) {
+    console.error('Attendance CSV export:', err);
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
   }
 });

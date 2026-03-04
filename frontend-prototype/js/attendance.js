@@ -1,6 +1,6 @@
 /**
- * Attendance.js - my attendance list rendering and summary view.
- * I already load attendance from my backend endpoint when authenticated.
+ * Attendance.js - attendance list rendering and summary view.
+ * Loads attendance from the backend when authenticated.
  */
 
 import { MockAPI, Auth, getQueryParam, formatDate } from './main.js';
@@ -53,10 +53,36 @@ export async function loadAttendanceList() {
     displayAttendanceList(attendanceRecords, lectureId);
     const summary = calculateSummary(attendanceRecords);
     displaySummary(summary);
+    setupDownloadCsvButton(lectureId);
   } catch (err) {
     console.error(err);
-    if (container) container.innerHTML = '<div class="alert alert-error">Failed to load attendance.</div>';
+    const tableContainer = document.getElementById('attendance-table-container');
+    if (tableContainer) tableContainer.innerHTML = '<div class="alert alert-error">Failed to load attendance.</div>';
   }
+}
+
+/**
+ * Wire up the Download CSV button
+ */
+function setupDownloadCsvButton(lectureId) {
+  const btn = document.getElementById('download-csv-btn');
+  if (!btn) return;
+  btn.style.display = lectureId ? 'inline-block' : 'none';
+  btn.replaceWith(btn.cloneNode(true));
+  const newBtn = document.getElementById('download-csv-btn');
+  newBtn.addEventListener('click', async () => {
+    try {
+      newBtn.disabled = true;
+      newBtn.textContent = 'Downloading...';
+      await MockAPI.downloadAttendanceCsv(lectureId);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to download CSV. Please try again.');
+    } finally {
+      newBtn.disabled = false;
+      newBtn.textContent = 'Download CSV';
+    }
+  });
 }
 
 /**
@@ -106,8 +132,8 @@ function displayAttendanceList(records, lectureId) {
     return;
   }
 
-  // Right now I show students who have attendance rows returned by the API.
-  // A future improvement is to also show enrolled students who have not checked in yet.
+  // Shows students who have attendance rows returned by the API.
+  // Future improvement: also show enrolled students who have not checked in yet.
   const tableHTML = `
     <div class="table-container">
       <table>
