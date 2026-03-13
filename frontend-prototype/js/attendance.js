@@ -3,7 +3,7 @@
  * Loads attendance from the backend when authenticated.
  */
 
-import { MockAPI, Auth, getQueryParam, formatDate } from './main.js';
+import { Auth, formatDate, getQueryParam, MockAPI } from './main.js';
 
 /**
  * Load and display attendance list
@@ -85,9 +85,9 @@ function setupDownloadCsvButton(lectureId) {
   });
 }
 
-/**
- * Load lecture details
- */
+
+ // Load lecture details
+ 
 async function loadLectureDetails(id) {
   try {
     const response = await fetch('mocks/lectures.json');
@@ -111,18 +111,18 @@ async function loadLectureDetails(id) {
   }
 }
 
-/**
- * Format time helper
- */
+
+ // Format time helper
+
 function formatTime(timeString) {
   if (!timeString) return '';
   const [hours, minutes] = timeString.split(':');
   return `${hours}:${minutes}`;
 }
 
-/**
- * Display attendance list
- */
+
+// Display attendance list
+ 
 function displayAttendanceList(records, lectureId) {
   const container = document.getElementById('attendance-table-container');
   if (!container) return;
@@ -171,9 +171,9 @@ function displayAttendanceList(records, lectureId) {
   container.innerHTML = tableHTML;
 }
 
-/**
- * Calculate attendance summary
- */
+
+ // Calculate attendance summary
+
 function calculateSummary(records) {
   const total = records.length;
   let present = 0;
@@ -198,9 +198,9 @@ function calculateSummary(records) {
   };
 }
 
-/**
- * Display summary statistics
- */
+
+ // Display summary statistics
+
 function displaySummary(summary) {
   const container = document.getElementById('attendance-summary');
   if (!container) return;

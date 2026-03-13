@@ -3,7 +3,7 @@
  * QR codes are generated via the backend API.
  */
 
-import { MockAPI, Auth, getQueryParam } from './main.js';
+import { Auth, getQueryParam, MockAPI } from './main.js';
 
 let countdownInterval = null;
 let currentQRData = null;
@@ -48,9 +48,9 @@ export async function initQRPage() {
   }
 }
 
-/**
- * Load lecture details from the API
- */
+
+// Load lecture details from the API
+
 async function loadLectureDetails(id) {
   try {
     const lecture = await MockAPI.getLecture(id);
@@ -85,18 +85,18 @@ async function loadLectureDetails(id) {
   }
 }
 
-/**
- * Format time helper
- */
+
+// Format time helper
+ 
 function formatTime(timeString) {
   if (!timeString) return '';
   const [hours, minutes] = String(timeString).split(':');
   return [hours, minutes].filter(Boolean).join(':') || '';
 }
 
-/**
- * Generate QR code
- */
+
+ // Generate QR code
+
 async function generateQRCode() {
   try {
     // Clear existing countdown
@@ -127,9 +127,9 @@ async function generateQRCode() {
   }
 }
 
-/**
- * Display QR code
- */
+
+ // Display QR code
+
 function displayQRCode(qrData) {
   const qrContainer = document.getElementById('qr-display');
   if (!qrContainer) return;
@@ -186,7 +186,7 @@ function displayQRCode(qrData) {
   // Try to construct the local IP URL if on localhost
   if (isLocalhost) {
     const port = window.location.port || '3000';
-    // We can't detect the actual local IP from JavaScript due to security,
+    // can't detect the actual local IP from JavaScript due to security,
     // but we can show instructions
     const localIpUrlElement = document.getElementById('local-ip-url');
     if (localIpUrlElement) {
@@ -197,7 +197,7 @@ function displayQRCode(qrData) {
 
 /**
  * Start countdown timer using seconds-left from the API.
- * We count down locally so server/client clock differences don't make the QR look expired right away.
+ *  count down locally so server/client clock differences don't make the QR look expired right away.
  */
 function startCountdown(secondsLeft) {
   const countdownElement = document.getElementById('countdown-value');

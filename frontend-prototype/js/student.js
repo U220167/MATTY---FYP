@@ -3,7 +3,7 @@
  * Posts check-ins to the backend API.
  */
 
-import { MockAPI, Auth, getQueryParam } from './main.js';
+import { Auth, getQueryParam, MockAPI } from './main.js';
 
 let qrToken = null;
 let checkInInfo = null; // { lecture_title, verification_question } from API
@@ -92,9 +92,9 @@ export function initCheckInPage() {
   setupCheckInFlow();
 }
 
-/**
- * Set up the check-in flow (login and check-in forms)
- */
+
+ // Set up the check-in flow (login and check-in forms)
+
 async function setupCheckInFlow() {
   // Set up login form submission (only if not already set up)
   const loginForm = document.getElementById('student-login-form');
@@ -230,9 +230,9 @@ async function handleStudentLogin(e) {
   }
 }
 
-/**
- * Show login error
- */
+
+ // Show login error
+
 function showLoginError(message) {
   const errorDiv = document.getElementById('login-error');
   if (errorDiv) {
@@ -241,9 +241,9 @@ function showLoginError(message) {
   }
 }
 
-/**
- * Handle check-in submission
- */
+
+// Handle check-in submission
+ 
 async function handleCheckIn(e) {
   e.preventDefault();
 

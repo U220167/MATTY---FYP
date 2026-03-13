@@ -13,9 +13,9 @@ function getAuthHeaders() {
   return headers;
 }
 
-/**
- * Authentication helpers
- */
+
+ // Authentication helpers
+ 
 export const Auth = {
   login(email, role, userData = {}) {
     localStorage.setItem('userEmail', email);
@@ -32,30 +32,29 @@ export const Auth = {
     return localStorage.getItem('token');
   },
 
-  /**
-   * Check if user is logged in
-   */
+
+ // Check if user is logged in
+
   isLoggedIn() {
     return localStorage.getItem('isLoggedIn') === 'true';
   },
 
-  /**
-   * Get current user role
-   */
+  
+   // Get current user role
+
   getRole() {
     return localStorage.getItem('userRole');
   },
 
-  /**
-   * Get current user email
-   */
+  
+// Get current user email
+
   getEmail() {
     return localStorage.getItem('userEmail');
   },
 
-  /**
-   * Logout user
-   */
+ //Logout user
+
   logout() {
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userRole');
@@ -67,24 +66,24 @@ export const Auth = {
     localStorage.removeItem('userLastName');
   },
 
-  /**
-   * Store student login (for student check-in)
-   */
+
+// Store student login (for student check-in)
+
   loginStudent(studentId) {
     localStorage.setItem('studentId', studentId);
     localStorage.setItem('isStudentLoggedIn', 'true');
   },
 
-  /**
-   * Check if student is logged in
-   */
+
+   // Check if student is logged in
+ 
   isStudentLoggedIn() {
     return localStorage.getItem('isStudentLoggedIn') === 'true';
   },
 
-  /**
-   * Get student ID
-   */
+ 
+   // Get student ID
+
   getStudentId() {
     return localStorage.getItem('studentId');
   }
@@ -272,18 +271,18 @@ export function getQueryParam(name) {
   return urlParams.get(name);
 }
 
-/**
- * Utility: Format time
- */
+
+ // Utility: Format time
+
 export function formatTime(timeString) {
   if (!timeString) return '';
   const [hours, minutes] = timeString.split(':');
   return `${hours}:${minutes}`;
 }
 
-/**
- * Utility: Format date
- */
+
+ // Utility: Format date
+
 export function formatDate(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);

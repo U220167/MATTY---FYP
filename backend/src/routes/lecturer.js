@@ -11,17 +11,17 @@ const QR_TTL_DEFAULT = 30;
 const QR_TTL_MIN = 15;
 const QR_TTL_MAX = 120;
 const frontendUrl = () => process.env.FRONTEND_URL || 'https://matty-fyp.onrender.com';
-
+// setting the QR code time for expiry
 function parseQrExpiry(val) {
   const n = parseInt(val, 10);
   if (!Number.isFinite(n)) return QR_TTL_DEFAULT;
   return Math.min(QR_TTL_MAX, Math.max(QR_TTL_MIN, n));
 }
-
+// token generation
 function generateQrToken() {
   return 'att_' + crypto.randomBytes(16).toString('hex') + '_' + Math.floor(Date.now() / 1000);
 }
-
+// call to get lectures
 router.get('/lectures', async (req, res) => {
   try {
     const result = await pool.query(
@@ -37,7 +37,7 @@ router.get('/lectures', async (req, res) => {
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
   }
 });
-
+// posting lectures to SQL database
 router.post('/lectures', async (req, res) => {
   try {
     const { module_id, module_code, module_name, title, lecture_date, start_time, end_time, location, repeat_weeks, verification_question, verification_answer, qr_expiry_seconds } = req.body;
@@ -98,7 +98,7 @@ router.get('/lectures/:id', async (req, res) => {
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
   }
 });
-
+// Lecture edit updating backend, updates previous values to new ones.
 router.put('/lectures/:id', async (req, res) => {
   try {
     const lectureId = req.params.id;
@@ -145,7 +145,7 @@ router.delete('/lectures/:id', async (req, res) => {
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
   }
 });
-
+// QR code generation for lectures
 router.post('/lectures/:id/qr/generate', async (req, res) => {
   try {
     const lectureId = req.params.id;
@@ -173,7 +173,7 @@ router.post('/lectures/:id/qr/generate', async (req, res) => {
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
   }
 });
-
+// Post to STOP qr code, linked to frontend button
 router.post('/lectures/:id/qr/stop', async (req, res) => {
   try {
     const lectureId = req.params.id;
@@ -195,7 +195,7 @@ router.post('/lectures/:id/qr/stop', async (req, res) => {
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
   }
 });
-
+// check if a QR code is active for the lecture
 router.get('/lectures/:id/qr/current', async (req, res) => {
   try {
     const lectureId = req.params.id;
@@ -225,7 +225,7 @@ router.get('/lectures/:id/qr/current', async (req, res) => {
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
   }
 });
-
+// pull lecture attendance from DB
 router.get('/lectures/:id/attendance', async (req, res) => {
   try {
     const lectureId = req.params.id;
@@ -254,7 +254,7 @@ router.get('/lectures/:id/attendance', async (req, res) => {
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR' });
   }
 });
-
+// CSV field formatting to delimit rows
 function escapeCsvField(val) {
   if (val == null) return '';
   const s = String(val);
@@ -263,7 +263,7 @@ function escapeCsvField(val) {
   }
   return s;
 }
-
+// Printing CSV
 router.get('/lectures/:id/attendance/csv', async (req, res) => {
   try {
     const lectureId = req.params.id;

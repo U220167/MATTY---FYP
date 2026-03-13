@@ -6,7 +6,7 @@ const router = express.Router();
 
 const LATE_THRESHOLD_MINUTES = 5;
 
-/** GET check-in info by token: returns lecture title and verification question (no answer). Requires student auth. */
+// GET check-in info by token: returns lecture title and verification question (no answer). Requires student auth.
 router.get('/attendance/checkin-info', authenticate, requireRole('STUDENT'), async (req, res) => {
   try {
     const token = req.query.token;
@@ -41,7 +41,7 @@ router.get('/attendance/checkin-info', authenticate, requireRole('STUDENT'), asy
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR', message: 'Failed to load check-in info' });
   }
 });
-
+// Post attendance checkin for students
 router.post('/attendance/checkin', authenticate, requireRole('STUDENT'), async (req, res) => {
   try {
     const { qr_token, answer } = req.body;

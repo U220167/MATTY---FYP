@@ -8,7 +8,7 @@ const router = express.Router();
 
 const JWT_OPTIONS = { expiresIn: process.env.JWT_EXPIRES_IN || '15m' };
 const SALT_ROUNDS = 10;
-
+// Post to register new users
 router.post('/register', async (req, res) => {
   try {
     const { email, password, first_name, last_name, role, student_id, department_id } = req.body;
@@ -45,7 +45,7 @@ router.post('/register', async (req, res) => {
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR', message: 'Registration failed' });
   }
 });
-
+// Post to compare login details with DB
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -75,7 +75,7 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ success: false, error: 'INTERNAL_SERVER_ERROR', message: 'Login failed' });
   }
 });
-
+// Refresh token function
 router.post('/refresh', async (req, res) => {
   try {
     const { refresh_token } = req.body;
