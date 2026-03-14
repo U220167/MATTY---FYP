@@ -1,22 +1,30 @@
 # API Specification
 
 ## Base URL
-`https://api.maynooth-attendance.com/api/v1`
+
+Production: `https://matty-fyp-api.onrender.com/api/v1`
+
+Local: `http://localhost:5000/api/v1` (or whatever `PORT` is set to)
 
 ## Authentication
-All protected routes require a JWT token in the Authorization header:
+
+Protected routes need a JWT in the `Authorization` header:
+
 ```
 Authorization: Bearer <token>
 ```
 
+The `/auth/*` routes are public. Everything under `/lecturer` and `/student` requires auth. Lecturer routes only accept `LECTURER` role; student routes only accept `STUDENT`.
+
 ---
 
-## 1. Authentication Endpoints
+## Auth Endpoints
 
 ### POST /auth/register
-Register a new user (student or lecturer).
 
-**Request Body:**
+Creates a new user. Students must supply `student_id` (8-digit string). Passwords are trimmed and hashed with bcrypt.
+
+Request:
 ```json
 {
   "email": "john.doe@mu.ie",
@@ -29,7 +37,9 @@ Register a new user (student or lecturer).
 }
 ```
 
-**Response (201):**
+`department_id` is optional. `role` must be `LECTURER`, `STUDENT`, or `ADMIN`.
+
+Response 201:
 ```json
 {
   "message": "User registered successfully",
@@ -43,12 +53,15 @@ Register a new user (student or lecturer).
 }
 ```
 
+Errors: `EMAIL_EXISTS`, `STUDENT_ID_EXISTS`, `VALIDATION_ERROR`
+
 ---
 
 ### POST /auth/login
-Authenticate user and receive JWT token.
 
-**Request Body:**
+Returns JWT and user info. No role check; frontend validates role.
+
+Request:
 ```json
 {
   "email": "john.doe@mu.ie",
@@ -56,11 +69,11 @@ Authenticate user and receive JWT token.
 }
 ```
 
-**Response (200):**
+Response 200:
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "refresh_token_here",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
     "id": 1,
     "email": "john.doe@mu.ie",
@@ -72,19 +85,22 @@ Authenticate user and receive JWT token.
 }
 ```
 
+Errors: `INVALID_CREDENTIALS` (401)
+
 ---
 
 ### POST /auth/refresh
-Refresh JWT token using refresh token.
 
-**Request Body:**
+Exchanges a valid refresh token for a new access token.
+
+Request:
 ```json
 {
-  "refresh_token": "refresh_token_here"
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-**Response (200):**
+Response 200:
 ```json
 {
   "token": "new_jwt_token_here"
@@ -94,14 +110,10 @@ Refresh JWT token using refresh token.
 ---
 
 ### GET /auth/me
-Get current authenticated user's profile.
 
-**Headers:**
-```
-Authorization: Bearer <token>
-```
+Returns the authenticated user. Requires `Authorization: Bearer <token>`.
 
-**Response (200):**
+Response 200:
 ```json
 {
   "id": 1,
@@ -118,147 +130,90 @@ Authorization: Bearer <token>
 }
 ```
 
----
-
-## 2. Lecturer Endpoints
-
-### GET /lecturer/dashboard
-Get lecturer's timetable for current day/week.
-
-**Headers:**
-```
-Authorization: Bearer <token>
-```
-
-**Query Parameters:**
-- `date` (optional): Date in YYYY-MM-DD format (default: today)
-- `range` (optional): "day" | "week" (default: "day")
-
-**Response (200):**
-```json
-{
-  "date": "2024-01-15",
-  "lectures": [
-    {
-      "id": 42,
-      "title": "Database Systems",
-      "module": {
-        "code": "CS301",
-        "name": "Database Systems"
-      },
-      "lecture_date": "2024-01-15",
-      "start_time": "09:00:00",
-      "end_time": "10:30:00",
-      "location": "Room A123",
-      "status": "SCHEDULED",
-      "has_qr_active": false,
-      "attendance_count": null
-    }
-  ],
-  "statistics": {
-    "total_lectures_today": 2,
-    "total_students": 245,
-    "average_attendance_rate": 87.5
-  }
-}
-```
+`department` is null if the user has no department.
 
 ---
+
+## Lecturer Endpoints
+
+All lecturer routes require `LECTURER` role.
 
 ### GET /lecturer/lectures
-Get all lectures for the authenticated lecturer.
 
-**Query Parameters:**
-- `status` (optional): Filter by status (SCHEDULED, ACTIVE, COMPLETED, CANCELLED)
-- `date_from` (optional): Start date filter
-- `date_to` (optional): End date filter
-- `page` (optional): Page number (default: 1)
-- `limit` (optional): Items per page (default: 20)
+Returns all lectures for the logged-in lecturer, ordered by date and time. No pagination or filters.
 
-**Response (200):**
+Response 200:
 ```json
 {
   "lectures": [
     {
       "id": 42,
       "title": "Database Systems",
-      "module": {
-        "id": 1,
-        "code": "CS301",
-        "name": "Database Systems"
-      },
       "lecture_date": "2024-01-15",
       "start_time": "09:00:00",
       "end_time": "10:30:00",
       "location": "Room A123",
       "status": "SCHEDULED",
-      "attendance_count": 38,
-      "total_enrolled": 45
+      "module_id": 1,
+      "module_code": "CS301",
+      "module_name": "Database Systems"
     }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 50,
-    "total_pages": 3
-  }
+  ]
 }
 ```
 
 ---
 
 ### GET /lecturer/lectures/:id
-Get specific lecture details.
 
-**Response (200):**
+Returns one lecture. 404 if not found or not owned.
+
+Response 200:
 ```json
 {
   "id": 42,
   "title": "Database Systems",
-  "module": {
-    "id": 1,
-    "code": "CS301",
-    "name": "Database Systems",
-    "description": "Introduction to database systems"
-  },
   "lecture_date": "2024-01-15",
   "start_time": "09:00:00",
   "end_time": "10:30:00",
   "location": "Room A123",
   "status": "SCHEDULED",
-  "created_at": "2024-01-10T10:00:00Z",
-  "qr_session": {
-    "is_active": false,
-    "expires_at": null
-  },
-  "attendance_summary": {
-    "total_enrolled": 45,
-    "present": 0,
-    "late": 0,
-    "absent": 45,
-    "percentage": 0
-  }
+  "module_id": 1,
+  "module_code": "CS301",
+  "module_name": "Database Systems",
+  "verification_question": "What is the lecturer's name?",
+  "verification_answer": "Smith",
+  "qr_expiry_seconds": 30
 }
 ```
 
 ---
 
 ### POST /lecturer/lectures
-Create a new lecture.
 
-**Request Body:**
+Creates one or more lectures. With `repeat_weeks` > 1, creates one lecture per week from `lecture_date`.
+
+Request:
 ```json
 {
-  "module_id": 1,
   "title": "Database Systems - Lecture 5",
   "lecture_date": "2024-01-15",
   "start_time": "09:00:00",
   "end_time": "10:30:00",
-  "location": "Room A123"
+  "location": "Room A123",
+  "module_id": 1,
+  "module_code": "CS301",
+  "module_name": "Database Systems",
+  "repeat_weeks": 1,
+  "verification_question": "Optional question",
+  "verification_answer": "Optional answer",
+  "qr_expiry_seconds": 30
 }
 ```
 
-**Response (201):**
+`module_id` or `module_code` can be used. If only `module_code` is given, the module is created if it doesn't exist. `location`, `verification_question`, `verification_answer` are optional. `qr_expiry_seconds` is clamped to 15–120; default 30. `repeat_weeks` defaults to 1.
+
+Response 201 (single lecture):
 ```json
 {
   "id": 42,
@@ -268,75 +223,107 @@ Create a new lecture.
   "end_time": "10:30:00",
   "location": "Room A123",
   "status": "SCHEDULED",
-  "created_at": "2024-01-15T08:00:00Z"
+  "verification_question": "Optional question",
+  "verification_answer": "Optional answer",
+  "qr_expiry_seconds": 30
+}
+```
+
+Response 201 (multiple):
+```json
+{
+  "created": 4,
+  "lectures": [ ... ]
+}
+```
+
+---
+
+### PUT /lecturer/lectures/:id
+
+Updates a lecture. Only sends fields that change. At least one field required.
+
+Request (example):
+```json
+{
+  "title": "New title",
+  "location": "Room B456",
+  "qr_expiry_seconds": 45
+}
+```
+
+Response 200: returns the updated lecture. 404 if not found or not owned.
+
+---
+
+### DELETE /lecturer/lectures/:id
+
+Deletes the lecture. Cascade removes QR sessions and attendance. 404 if not found or not owned.
+
+Response 200:
+```json
+{
+  "success": true,
+  "message": "Lecture deleted"
 }
 ```
 
 ---
 
 ### POST /lecturer/lectures/:id/qr/generate
-Generate a QR code for a lecture.
 
-**Response (200):**
+Generates a new QR session. Any existing active session for that lecture is deactivated first. Uses the lecture’s `qr_expiry_seconds` (or default 30).
+
+Response 200:
 ```json
 {
   "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-  "qr_token": "att_550e8400e29b41d4a716446655440000_1705315200",
-  "qr_url": "https://attendance.maynooth.edu/student/checkin?token=att_550e8400e29b41d4a716446655440000_1705315200",
-  "expires_at": "2024-01-15T14:01:00Z",
-  "expires_in_seconds": 60,
-  "refresh_interval": 60
+  "qr_token": "att_a1b2c3d4e5f6..._1705315200",
+  "qr_url": "https://matty-fyp.onrender.com/student-checkin.html?token=att_a1b2c3d4...",
+  "expires_at": "2024-01-15T14:01:00.000Z",
+  "expires_in_seconds": 30
 }
 ```
 
 ---
 
-### POST /lecturer/lectures/:id/qr/refresh
-Manually refresh the QR code.
+### POST /lecturer/lectures/:id/qr/stop
 
-**Response (200):**
+Deactivates all active QR sessions for the lecture.
+
+Response 200:
 ```json
 {
-  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-  "qr_token": "att_new_token_here",
-  "expires_at": "2024-01-15T14:02:00Z",
-  "expires_in_seconds": 60
+  "success": true,
+  "message": "Active QR session stopped",
+  "stopped_count": 1
 }
 ```
 
 ---
 
 ### GET /lecturer/lectures/:id/qr/current
-Get the current active QR code (if exists).
 
-**Response (200):**
+Returns the current active QR code if one exists and has not expired. 404 if none.
+
+Response 200:
 ```json
 {
-  "qr_code": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-  "qr_token": "att_token_here",
-  "expires_at": "2024-01-15T14:01:00Z",
-  "expires_in_seconds": 45,
+  "qr_code": "data:image/png;base64,...",
+  "qr_token": "att_...",
+  "expires_at": "2024-01-15T14:01:00.000Z",
+  "expires_in_seconds": 12,
   "is_active": true
-}
-```
-
-**Response (404):**
-```json
-{
-  "error": "No active QR code found for this lecture"
 }
 ```
 
 ---
 
 ### GET /lecturer/lectures/:id/attendance
-Get attendance records for a lecture.
 
-**Query Parameters:**
-- `status` (optional): Filter by status (PRESENT, LATE, ABSENT)
-- `export` (optional): "csv" to download as CSV
+Returns attendance for the lecture.
 
-**Response (200):**
+Response 200:
 ```json
 {
   "lecture": {
@@ -349,345 +336,96 @@ Get attendance records for a lecture.
   "attendance": [
     {
       "id": 1,
-      "student": {
-        "id": 10,
-        "student_id": "12345678",
-        "first_name": "John",
-        "last_name": "Smith"
-      },
-      "checked_in_at": "2024-01-15T09:02:00Z",
+      "student_id": "12345678",
+      "first_name": "John",
+      "last_name": "Smith",
+      "checked_in_at": "2024-01-15T09:02:00.000Z",
       "status": "PRESENT",
       "minutes_late": 0
-    },
-    {
-      "id": 2,
-      "student": {
-        "id": 11,
-        "student_id": "12345679",
-        "first_name": "Jane",
-        "last_name": "Doe"
-      },
-      "checked_in_at": "2024-01-15T09:15:00Z",
-      "status": "LATE",
-      "minutes_late": 15
-    }
-  ],
-  "summary": {
-    "total_enrolled": 45,
-    "present": 38,
-    "late": 5,
-    "absent": 2,
-    "attendance_percentage": 95.6
-  }
-}
-```
-
----
-
-### GET /lecturer/lectures/:id/analytics
-Get detailed analytics for a lecture.
-
-**Response (200):**
-```json
-{
-  "lecture_id": 42,
-  "overview": {
-    "total_enrolled": 45,
-    "present": 38,
-    "late": 5,
-    "absent": 2,
-    "attendance_percentage": 95.6,
-    "average_checkin_time": "2024-01-15T09:05:00Z"
-  },
-  "timeline": [
-    {
-      "time": "09:00",
-      "checkins": 5
-    },
-    {
-      "time": "09:05",
-      "checkins": 15
-    }
-  ],
-  "status_breakdown": {
-    "PRESENT": 38,
-    "LATE": 5,
-    "ABSENT": 2
-  }
-}
-```
-
----
-
-### GET /lecturer/analytics/summary
-Get overall analytics summary for the lecturer.
-
-**Query Parameters:**
-- `date_from` (optional): Start date
-- `date_to` (optional): End date
-- `module_id` (optional): Filter by module
-
-**Response (200):**
-```json
-{
-  "total_lectures": 50,
-  "total_students": 245,
-  "average_attendance_rate": 87.5,
-  "total_attendance_records": 10937,
-  "by_module": [
-    {
-      "module": {
-        "id": 1,
-        "code": "CS301",
-        "name": "Database Systems"
-      },
-      "lectures_count": 20,
-      "average_attendance": 89.2
-    }
-  ],
-  "trend": [
-    {
-      "date": "2024-01-15",
-      "attendance_rate": 87.5
     }
   ]
 }
 ```
 
+`status` is `PRESENT`, `LATE`, or `ABSENT`.
+
 ---
 
-## 3. Student Endpoints
+### GET /lecturer/lectures/:id/attendance/csv
 
-### GET /student/lectures
-Get student's enrolled lectures.
+Same data as attendance, returned as CSV with BOM for Excel. Headers: Student ID, First Name, Last Name, Checked In At, Status, Minutes Late. Response uses `Content-Disposition: attachment` and `Content-Type: text/csv`.
 
-**Query Parameters:**
-- `date_from` (optional): Start date filter
-- `date_to` (optional): End date filter
-- `status` (optional): Filter by status
+---
 
-**Response (200):**
+## Student Endpoints
+
+All student routes require `STUDENT` role.
+
+### GET /student/attendance/checkin-info
+
+Query: `?token=<qr_token>`. Resolves token to lecture and returns title and verification question (never the answer). Used to show the verification question before submit.
+
+Response 200:
 ```json
 {
-  "lectures": [
-    {
-      "id": 42,
-      "title": "Database Systems",
-      "module": {
-        "code": "CS301",
-        "name": "Database Systems"
-      },
-      "lecture_date": "2024-01-15",
-      "start_time": "09:00:00",
-      "end_time": "10:30:00",
-      "location": "Room A123",
-      "attendance_status": "PRESENT",
-      "checked_in_at": "2024-01-15T09:02:00Z"
-    }
-  ]
+  "lecture_title": "Database Systems",
+  "verification_question": "What is the lecturer's name?"
 }
 ```
+
+`verification_question` is null if the lecture has none. 400 with `QR_TOKEN_EXPIRED` or `LECTURE_NOT_FOUND` if token is invalid or expired.
 
 ---
 
 ### POST /student/attendance/checkin
-Submit attendance via QR scan.
 
-**Request Body:**
+Submits attendance. Requires `qr_token`. If the lecture has a verification question, include `answer` (case-insensitive comparison).
+
+Request:
 ```json
 {
-  "qr_token": "att_550e8400e29b41d4a716446655440000_1705315200"
+  "qr_token": "att_a1b2c3d4e5f6..._1705315200",
+  "answer": "Smith"
 }
 ```
 
-**Response (200) - Success:**
+Response 200 (success):
 ```json
 {
   "success": true,
   "message": "Attendance recorded successfully",
   "attendance": {
-    "id": 123,
     "lecture": {
       "id": 42,
       "title": "Database Systems",
-      "module": {
-        "code": "CS301",
-        "name": "Database Systems"
-      },
       "lecture_date": "2024-01-15",
-      "start_time": "09:00:00",
-      "end_time": "10:30:00",
-      "location": "Room A123"
+      "start_time": "09:00:00"
     },
-    "checked_in_at": "2024-01-15T09:02:00Z",
+    "checked_in_at": "2024-01-15T09:02:00.000Z",
     "status": "PRESENT",
-    "minutes_late": 0
+    "minutes_late": 0,
+    "student_id": "12345678"
   }
 }
 ```
 
-**Response (200) - Late Check-in:**
-```json
-{
-  "success": true,
-  "message": "Attendance recorded, but you checked in late",
-  "attendance": {
-    "id": 123,
-    "lecture": {
-      "id": 42,
-      "title": "Database Systems"
-    },
-    "checked_in_at": "2024-01-15T09:15:00Z",
-    "status": "LATE",
-    "minutes_late": 15
-  }
-}
-```
+Status rules:
+- **PRESENT**: check-in within 5 minutes of lecture start
+- **LATE**: check-in 5+ minutes after start but before lecture end
+- **ABSENT**: check-in after lecture end
 
-**Response (400) - Errors:**
-```json
-{
-  "success": false,
-  "error": "QR_TOKEN_EXPIRED",
-  "message": "The QR code has expired. Please ask your lecturer for a new one."
-}
-```
-
-```json
-{
-  "success": false,
-  "error": "ALREADY_CHECKED_IN",
-  "message": "You have already checked in for this lecture."
-}
-```
-
-```json
-{
-  "success": false,
-  "error": "LECTURE_NOT_FOUND",
-  "message": "Invalid QR code or lecture not found."
-}
-```
+Errors: `QR_TOKEN_EXPIRED`, `LECTURE_NOT_FOUND`, `ALREADY_CHECKED_IN`, `VERIFICATION_FAILED`, `VALIDATION_ERROR`
 
 ---
 
-### GET /student/attendance/history
-Get student's attendance history.
-
-**Query Parameters:**
-- `module_id` (optional): Filter by module
-- `date_from` (optional): Start date
-- `date_to` (optional): End date
-- `status` (optional): Filter by status
-
-**Response (200):**
-```json
-{
-  "attendance": [
-    {
-      "id": 123,
-      "lecture": {
-        "id": 42,
-        "title": "Database Systems - Lecture 5",
-        "module": {
-          "code": "CS301",
-          "name": "Database Systems"
-        },
-        "lecture_date": "2024-01-15",
-        "start_time": "09:00:00"
-      },
-      "checked_in_at": "2024-01-15T09:02:00Z",
-      "status": "PRESENT",
-      "minutes_late": 0
-    }
-  ],
-  "statistics": {
-    "total_lectures": 50,
-    "present": 45,
-    "late": 3,
-    "absent": 2,
-    "attendance_rate": 96.0
-  }
-}
-```
-
----
-
-### GET /student/attendance/stats
-Get student's attendance statistics.
-
-**Response (200):**
-```json
-{
-  "overall": {
-    "total_lectures": 50,
-    "present": 45,
-    "late": 3,
-    "absent": 2,
-    "attendance_rate": 96.0
-  },
-  "by_module": [
-    {
-      "module": {
-        "id": 1,
-        "code": "CS301",
-        "name": "Database Systems"
-      },
-      "total_lectures": 20,
-      "present": 19,
-      "attendance_rate": 95.0
-    }
-  ],
-  "trend": [
-    {
-      "week": "2024-01-15",
-      "attendance_rate": 100.0
-    }
-  ]
-}
-```
-
----
-
-## Error Responses
-
-All error responses follow this format:
+## Error Format
 
 ```json
 {
   "success": false,
   "error": "ERROR_CODE",
-  "message": "Human-readable error message",
-  "details": {} // Optional additional details
+  "message": "Human-readable message"
 }
 ```
 
-### Common Error Codes:
-- `UNAUTHORIZED` (401): Invalid or missing authentication token
-- `FORBIDDEN` (403): User doesn't have permission
-- `NOT_FOUND` (404): Resource not found
-- `VALIDATION_ERROR` (400): Invalid request data
-- `QR_TOKEN_EXPIRED` (400): QR token has expired
-- `ALREADY_CHECKED_IN` (400): Student already checked in
-- `LECTURE_NOT_FOUND` (400): Lecture associated with QR not found
-- `RATE_LIMIT_EXCEEDED` (429): Too many requests
-- `INTERNAL_SERVER_ERROR` (500): Server error
-
----
-
-## Rate Limiting
-
-Rate limits are applied per endpoint:
-
-- **Authentication endpoints:** 5 requests per 15 minutes per IP
-- **QR Check-in:** 5 requests per minute per IP
-- **QR Generation:** 10 requests per minute per lecturer
-- **General API:** 100 requests per minute per user
-
-Rate limit headers are included in responses:
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 99
-X-RateLimit-Reset: 1642089600
-```
-
+Codes: `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `EMAIL_EXISTS`, `STUDENT_ID_EXISTS`, `INVALID_CREDENTIALS`, `QR_TOKEN_EXPIRED`, `LECTURE_NOT_FOUND`, `ALREADY_CHECKED_IN`, `VERIFICATION_FAILED`, `INTERNAL_SERVER_ERROR`

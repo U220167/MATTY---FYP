@@ -64,6 +64,7 @@ CREATE TABLE lectures (
     description TEXT,
     verification_question TEXT,
     verification_answer TEXT,
+    qr_expiry_seconds INTEGER DEFAULT 30,
     status VARCHAR(20) DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED', 'ACTIVE', 'COMPLETED', 'CANCELLED')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

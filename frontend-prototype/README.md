@@ -92,8 +92,8 @@ These are used for page guards and API headers.
 
 ## Known legacy bits still in this folder
 
-- `mocks/` files are still present for fallback/dev paths.
-- `qr.js` still reads mock lecture metadata for display text on the QR page.
+- `mocks/` files are still present. `attendance.js` falls back to `mocks/lectures.json` for lecture details when the API returns none (rare case).
+- `MockAPI` in `main.js` is a legacy name; its methods call the live backend.
 - Some helper names still reflect older prototype structure.
 
 These do not block normal API-backed usage.
