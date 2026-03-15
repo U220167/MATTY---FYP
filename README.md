@@ -1,4 +1,4 @@
-# Maynooth Attendance Tool
+# (Matty) The Maynooth Attendance Tool
 
 Web app for lecturers to record student attendance using time-limited QR codes. Students check in by scanning the QR or entering the token manually.
 
